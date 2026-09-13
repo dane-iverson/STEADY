@@ -5,6 +5,14 @@ export const memoryUsers = [];
 export async function connectDatabase() {
   const mongoUri = process.env.MONGODB_URI;
 
+  if (!mongoUri) {
+    return { connected: false, useMemory: true };
+  }
+
+  if (mongoose.connection.readyState === 1) {
+    return { connected: true, useMemory: false };
+  }
+
   try {
     await mongoose.connect(mongoUri);
     console.log("MongoDB connected");

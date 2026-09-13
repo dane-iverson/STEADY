@@ -28,6 +28,10 @@ app.use("/api/user", userRoutes);
 
 await connectDatabase();
 
-app.listen(PORT, () => {
-  console.log(`Steady API listening on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Steady API listening on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

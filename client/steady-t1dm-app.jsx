@@ -15,7 +15,9 @@ import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { buildReadingEntry } from "./utils/diabetes.js";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+const API_BASE =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
 
 const defaultReadings = [
   {
