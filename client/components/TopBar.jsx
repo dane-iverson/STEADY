@@ -1,8 +1,8 @@
 import React from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, UserRound } from "lucide-react";
 import { StatusPill } from "./StatusPill";
 
-export function TopBar({ title, onBack, online, onToggleOnline }) {
+export function TopBar({ title, onBack, online, onToggleOnline, onProfile }) {
   return (
     <div className="topbar">
       <div className="topbarRow">
@@ -14,7 +14,13 @@ export function TopBar({ title, onBack, online, onToggleOnline }) {
           <div style={{ width: 32 }} />
         )}
         <h1>{title}</h1>
-        <div style={{ width: 32 }} />
+        <button
+          className="iconBtn"
+          onClick={onProfile}
+          aria-label="Medical profile"
+        >
+          <UserRound size={19} />
+        </button>
       </div>
       <StatusPill online={online} onToggle={onToggleOnline} />
     </div>

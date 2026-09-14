@@ -1,5 +1,13 @@
-import React, { useState } from "react";
-import { Lock, Share2, User, Users } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  Lock,
+  Pencil,
+  Share2,
+  User,
+  Users,
+} from "lucide-react";
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
 
@@ -13,6 +21,30 @@ export function ProfilePage({
   onLogout,
 }) {
   const [tab, setTab] = useState("profile");
+  const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
+  const [draftProfile, setDraftProfile] = useState(profile);
+
+  useEffect(() => {
+    setDraftProfile(profile);
+  }, [profile]);
+
+  function updateDraft(key, value) {
+    setDraftProfile((current) => ({ ...current, [key]: value }));
+  }
+
+  function savePersonalInfo() {
+    setProfile(draftProfile);
+    setEditingPersonalInfo(false);
+  }
+
+  function cancelPersonalInfo() {
+    setDraftProfile(profile);
+    setEditingPersonalInfo(false);
+  }
+
+  function displayValue(value) {
+    return value || "Not provided";
+  }
 
   return (
     <div className="screen">
@@ -40,12 +72,159 @@ export function ProfilePage({
 
       {tab === "profile" && (
         <>
-          <label className="fieldLabel">Name</label>
-          <input
-            className="textInput"
-            value={profile.name}
-            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-          />
+          <details className="profileDetails" open>
+            <summary className="profileSummary">
+              <span>Personal information</span>
+              <ChevronDown size={17} />
+            </summary>
+            {!editingPersonalInfo ? (
+              <>
+                <div className="profileInfoGrid">
+                  <div>
+                    <span className="profileInfoLabel">First name</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.name)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Surname</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.surname)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Date of birth</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.dateOfBirth)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Height</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.height)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Weight</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.weight)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Gender</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.gender)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Other medication</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.otherMedication)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Allergies</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.allergies)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="btnGhost profileAction"
+                  type="button"
+                  onClick={() => setEditingPersonalInfo(true)}
+                >
+                  <Pencil size={15} /> Edit information
+                </button>
+              </>
+            ) : (
+              <div className="profileEditForm">
+                <label className="fieldLabel">First name</label>
+                <input
+                  className="textInput"
+                  value={draftProfile.name || ""}
+                  onChange={(e) => updateDraft("name", e.target.value)}
+                />
+                <label className="fieldLabel" style={{ marginTop: 12 }}>
+                  Surname
+                </label>
+                <input
+                  className="textInput"
+                  value={draftProfile.surname || ""}
+                  onChange={(e) => updateDraft("surname", e.target.value)}
+                />
+                <label className="fieldLabel" style={{ marginTop: 12 }}>
+                  Date of birth
+                </label>
+                <input
+                  className="textInput"
+                  type="date"
+                  value={draftProfile.dateOfBirth || ""}
+                  onChange={(e) => updateDraft("dateOfBirth", e.target.value)}
+                />
+                <div className="formGrid" style={{ marginTop: 12 }}>
+                  <div>
+                    <label className="fieldLabel">Height</label>
+                    <input
+                      className="textInput"
+                      value={draftProfile.height || ""}
+                      onChange={(e) => updateDraft("height", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="fieldLabel">Weight</label>
+                    <input
+                      className="textInput"
+                      value={draftProfile.weight || ""}
+                      onChange={(e) => updateDraft("weight", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <label className="fieldLabel" style={{ marginTop: 12 }}>
+                  Gender
+                </label>
+                <input
+                  className="textInput"
+                  value={draftProfile.gender || ""}
+                  onChange={(e) => updateDraft("gender", e.target.value)}
+                />
+                <label className="fieldLabel" style={{ marginTop: 12 }}>
+                  Other medication
+                </label>
+                <input
+                  className="textInput"
+                  value={draftProfile.otherMedication || ""}
+                  onChange={(e) =>
+                    updateDraft("otherMedication", e.target.value)
+                  }
+                />
+                <label className="fieldLabel" style={{ marginTop: 12 }}>
+                  Allergies
+                </label>
+                <input
+                  className="textInput"
+                  value={draftProfile.allergies || ""}
+                  onChange={(e) => updateDraft("allergies", e.target.value)}
+                />
+                <div className="profileEditActions">
+                  <button
+                    className="btnGhost"
+                    type="button"
+                    onClick={cancelPersonalInfo}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btnPrimary"
+                    type="button"
+                    onClick={savePersonalInfo}
+                  >
+                    <Check size={16} /> Save changes
+                  </button>
+                </div>
+              </div>
+            )}
+          </details>
 
           <label className="fieldLabel" style={{ marginTop: 12 }}>
             Age group

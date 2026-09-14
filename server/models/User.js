@@ -16,6 +16,13 @@ const userSchema = new mongoose.Schema(
     reminders: { type: Array, default: [] },
     profile: {
       name: { type: String, default: "" },
+      surname: { type: String, default: "" },
+      height: { type: String, default: "" },
+      weight: { type: String, default: "" },
+      gender: { type: String, default: "" },
+      otherMedication: { type: String, default: "" },
+      allergies: { type: String, default: "" },
+      dateOfBirth: { type: String, default: "" },
       status: { type: String, default: "Type 1 diabetes" },
       contactName: { type: String, default: "" },
       contactNumber: { type: String, default: "" },

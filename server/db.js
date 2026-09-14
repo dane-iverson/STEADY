@@ -61,6 +61,13 @@ export function createUserDocument(data) {
         ],
     profile: {
       name: data.profile?.name || data.name || "",
+      surname: data.profile?.surname || "",
+      height: data.profile?.height || "",
+      weight: data.profile?.weight || "",
+      gender: data.profile?.gender || "",
+      otherMedication: data.profile?.otherMedication || "",
+      allergies: data.profile?.allergies || "",
+      dateOfBirth: data.profile?.dateOfBirth || "",
       status: data.profile?.status || "Type 1 diabetes",
       contactName: data.profile?.contactName || "",
       contactNumber: data.profile?.contactNumber || "",

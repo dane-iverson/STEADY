@@ -13,7 +13,10 @@ import { RemindersPage } from "./pages/RemindersPage";
 import { EducationPage } from "./pages/EducationPage";
 import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
-import { buildReadingEntry } from "./utils/diabetes.js";
+import {
+  ageGroupFromDateOfBirth,
+  buildReadingEntry,
+} from "./utils/diabetes.js";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -71,8 +74,15 @@ const defaultReminders = [
   },
 ];
 
-const defaultProfile = {
+export const defaultProfile = {
   name: "",
+  surname: "",
+  height: "",
+  weight: "",
+  gender: "",
+  otherMedication: "",
+  allergies: "",
+  dateOfBirth: "",
   status: "Type 1 diabetes",
   contactName: "",
   contactNumber: "",
@@ -265,7 +275,7 @@ export default function App() {
   };
 
   return (
-    <div className="appOuter">
+    <div className={`appOuter theme-${ageGroup}`}>
       <div className="phone">
         {showTopBar && (
           <TopBar
@@ -273,6 +283,7 @@ export default function App() {
             onBack={null}
             online={online}
             onToggleOnline={() => setOnline((o) => !o)}
+            onProfile={() => setScreen("profile")}
           />
         )}
 
@@ -370,7 +381,15 @@ export default function App() {
               profile={profile}
               setProfile={(nextProfile) => {
                 setProfile(nextProfile);
-                persistUserState({ profile: nextProfile });
+                setName(nextProfile.name || "");
+                const nextAgeGroup = ageGroupFromDateOfBirth(
+                  nextProfile.dateOfBirth,
+                );
+                if (nextAgeGroup) setAgeGroup(nextAgeGroup);
+                persistUserState({
+                  profile: nextProfile,
+                  ...(nextAgeGroup ? { ageGroup: nextAgeGroup } : {}),
+                });
               }}
               sharing={sharing}
               setSharing={(nextSharing) => {

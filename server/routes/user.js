@@ -5,6 +5,28 @@ import { createUserDocument, memoryUsers } from "../db.js";
 
 const router = express.Router();
 
+function ageGroupFromDateOfBirth(dateOfBirth) {
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+  if (
+    !dateOfBirth ||
+    Number.isNaN(birthDate.getTime()) ||
+    birthDate > new Date()
+  ) {
+    return null;
+  }
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthday = new Date(
+    today.getFullYear(),
+    birthDate.getMonth(),
+    birthDate.getDate(),
+  );
+  if (birthday > today) age -= 1;
+  if (age <= 12) return "child";
+  if (age <= 18) return "teen";
+  return "young_adult";
+}
+
 function sanitizeUser(user) {
   return {
     _id: user._id,
@@ -15,6 +37,13 @@ function sanitizeUser(user) {
     reminders: user.reminders || [],
     profile: user.profile || {
       name: "",
+      surname: "",
+      height: "",
+      weight: "",
+      gender: "",
+      otherMedication: "",
+      allergies: "",
+      dateOfBirth: "",
       status: "Type 1 diabetes",
       contactName: "",
       contactNumber: "",
@@ -73,13 +102,22 @@ router.get("/me", async (req, res) => {
 router.put("/me", async (req, res) => {
   try {
     const updates = req.body || {};
+    const profile = updates.profile || {};
+    const derivedAgeGroup = ageGroupFromDateOfBirth(profile.dateOfBirth);
     const safeUpdate = {
       name: updates.name || "",
-      ageGroup: updates.ageGroup || "teen",
+      ageGroup: derivedAgeGroup || updates.ageGroup || "teen",
       readings: Array.isArray(updates.readings) ? updates.readings : [],
       reminders: Array.isArray(updates.reminders) ? updates.reminders : [],
       profile: updates.profile || {
         name: "",
+        surname: "",
+        height: "",
+        weight: "",
+        gender: "",
+        otherMedication: "",
+        allergies: "",
+        dateOfBirth: "",
         status: "Type 1 diabetes",
         contactName: "",
         contactNumber: "",

@@ -6,6 +6,28 @@ import { createUserDocument, memoryUsers } from "../db.js";
 
 const router = express.Router();
 
+function ageGroupFromDateOfBirth(dateOfBirth) {
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+  if (
+    !dateOfBirth ||
+    Number.isNaN(birthDate.getTime()) ||
+    birthDate > new Date()
+  ) {
+    return null;
+  }
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthday = new Date(
+    today.getFullYear(),
+    birthDate.getMonth(),
+    birthDate.getDate(),
+  );
+  if (birthday > today) age -= 1;
+  if (age <= 12) return "child";
+  if (age <= 18) return "teen";
+  return "young_adult";
+}
+
 function createToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET || "steady-dev-secret", {
     expiresIn: "7d",
@@ -35,9 +57,10 @@ function sanitizeUser(user) {
 
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, ageGroup } = req.body;
+    const { name, email, password, profile } = req.body;
+    const ageGroup = ageGroupFromDateOfBirth(profile?.dateOfBirth);
 
-    if (!name?.trim() || !email?.trim() || !password) {
+    if (!name?.trim() || !email?.trim() || !password || !ageGroup) {
       return res
         .status(400)
         .json({ message: "Name, email and password are required." });
@@ -97,6 +120,13 @@ router.post("/signup", async (req, res) => {
       ],
       profile: {
         name: name.trim(),
+        surname: profile?.surname,
+        height: profile?.height,
+        weight: profile?.weight,
+        gender: profile?.gender,
+        otherMedication: profile?.otherMedication,
+        allergies: profile?.allergies,
+        dateOfBirth: profile?.dateOfBirth,
         status: "Type 1 diabetes",
         contactName: "",
         contactNumber: "",

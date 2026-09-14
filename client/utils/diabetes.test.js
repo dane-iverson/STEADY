@@ -1,6 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildReadingEntry, formatReadingStamp, statusOf } from "./diabetes.js";
+import {
+  ageGroupFromDateOfBirth,
+  buildReadingEntry,
+  formatReadingStamp,
+  statusOf,
+} from "./diabetes.js";
+
+test("derives the age group from date of birth", () => {
+  const today = new Date("2026-09-14T12:00:00");
+
+  assert.equal(ageGroupFromDateOfBirth("2015-09-14", today), "child");
+  assert.equal(ageGroupFromDateOfBirth("2008-09-15", today), "teen");
+  assert.equal(ageGroupFromDateOfBirth("2000-01-01", today), "young_adult");
+  assert.equal(ageGroupFromDateOfBirth("2027-01-01", today), null);
+});
 
 test("classifies before-meal mmol readings using SA ranges", () => {
   assert.deepEqual(statusOf(2.9, "Before meal"), {

@@ -1,3 +1,22 @@
+export function ageGroupFromDateOfBirth(dateOfBirth, today = new Date()) {
+  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+  if (!dateOfBirth || Number.isNaN(birthDate.getTime()) || birthDate > today) {
+    return null;
+  }
+
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthdayThisYear = new Date(
+    today.getFullYear(),
+    birthDate.getMonth(),
+    birthDate.getDate(),
+  );
+  if (birthdayThisYear > today) age -= 1;
+
+  if (age <= 12) return "child";
+  if (age <= 18) return "teen";
+  return "young_adult";
+}
+
 export function fmt(v) {
   return Number(v).toFixed(1);
 }

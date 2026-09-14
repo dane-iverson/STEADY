@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ageGroupFromDateOfBirth } from "../utils/diabetes";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -8,6 +9,13 @@ export function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     name: "",
+    surname: "",
+    height: "",
+    weight: "",
+    gender: "",
+    otherMedication: "",
+    allergies: "",
+    dateOfBirth: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -29,6 +37,10 @@ export function AuthPage({ onAuthSuccess }) {
         setError("Please add your name.");
         return;
       }
+      if (!form.dateOfBirth || !ageGroupFromDateOfBirth(form.dateOfBirth)) {
+        setError("Please add a valid date of birth.");
+        return;
+      }
       if (form.password !== form.confirmPassword) {
         setError("Passwords do not match.");
         return;
@@ -44,9 +56,19 @@ export function AuthPage({ onAuthSuccess }) {
           ? { email: form.email, password: form.password }
           : {
               name: form.name,
+              ageGroup: ageGroupFromDateOfBirth(form.dateOfBirth),
               email: form.email,
               password: form.password,
-              ageGroup: form.ageGroup,
+              profile: {
+                name: form.name,
+                surname: form.surname,
+                height: form.height,
+                weight: form.weight,
+                gender: form.gender,
+                otherMedication: form.otherMedication,
+                allergies: form.allergies,
+                dateOfBirth: form.dateOfBirth,
+              },
             };
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -113,26 +135,71 @@ export function AuthPage({ onAuthSuccess }) {
             />
 
             <label className="fieldLabel" style={{ marginTop: 12 }}>
-              Age group
+              Surname
             </label>
-            <div className="chipRow">
-              {["child", "teen", "young_adult"].map((group) => (
-                <button
-                  key={group}
-                  type="button"
-                  className={
-                    "chip" + (form.ageGroup === group ? " chipActive" : "")
-                  }
-                  onClick={() => updateField("ageGroup", group)}
-                >
-                  {group === "child"
-                    ? "5–12"
-                    : group === "teen"
-                      ? "13–18"
-                      : "19–25"}
-                </button>
-              ))}
+            <input
+              className="textInput"
+              value={form.surname}
+              onChange={(e) => updateField("surname", e.target.value)}
+            />
+
+            <label className="fieldLabel" style={{ marginTop: 12 }}>
+              Date of birth
+            </label>
+            <input
+              className="textInput"
+              type="date"
+              value={form.dateOfBirth}
+              onChange={(e) => updateField("dateOfBirth", e.target.value)}
+            />
+
+            <div className="formGrid" style={{ marginTop: 12 }}>
+              <div>
+                <label className="fieldLabel">Height</label>
+                <input
+                  className="textInput"
+                  value={form.height}
+                  onChange={(e) => updateField("height", e.target.value)}
+                  placeholder="e.g. 170 cm"
+                />
+              </div>
+              <div>
+                <label className="fieldLabel">Weight</label>
+                <input
+                  className="textInput"
+                  value={form.weight}
+                  onChange={(e) => updateField("weight", e.target.value)}
+                  placeholder="e.g. 65 kg"
+                />
+              </div>
             </div>
+
+            <label className="fieldLabel" style={{ marginTop: 12 }}>
+              Gender
+            </label>
+            <input
+              className="textInput"
+              value={form.gender}
+              onChange={(e) => updateField("gender", e.target.value)}
+            />
+
+            <label className="fieldLabel" style={{ marginTop: 12 }}>
+              Other medication
+            </label>
+            <input
+              className="textInput"
+              value={form.otherMedication}
+              onChange={(e) => updateField("otherMedication", e.target.value)}
+            />
+
+            <label className="fieldLabel" style={{ marginTop: 12 }}>
+              Allergies
+            </label>
+            <input
+              className="textInput"
+              value={form.allergies}
+              onChange={(e) => updateField("allergies", e.target.value)}
+            />
           </>
         )}
 

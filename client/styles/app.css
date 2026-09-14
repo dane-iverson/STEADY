@@ -23,6 +23,60 @@
 }
 .appOuter * { box-sizing: border-box; }
 
+.appOuter.theme-child {
+  --bg: #FFF4D6;
+  --surface: #FFFEF8;
+  --ink: #283442;
+  --ink-soft: #68727D;
+  --brand: #E56B3F;
+  --brand-dark: #B94A2C;
+  --brand-tint: #FFE4B8;
+  --target: #279B74;
+  --border: #F0D5AA;
+  background: linear-gradient(135deg, #FFF4D6 0%, #E5F5EE 100%);
+}
+
+.appOuter.theme-child .phone { border-radius: 38px; box-shadow: 0 24px 60px -20px rgba(181, 105, 48, 0.3); }
+.appOuter.theme-child .screenTitle { font-size: 25px; }
+.appOuter.theme-child .tile,
+.appOuter.theme-child .card,
+.appOuter.theme-child .ageOption { border-radius: 20px; }
+.appOuter.theme-child .tile { border-width: 1.5px; }
+
+.appOuter.theme-teen {
+  --bg: #EAF3F7;
+  --surface: #FFFFFF;
+  --ink: #1F3040;
+  --ink-soft: #617181;
+  --brand: #287E9E;
+  --brand-dark: #1B5B76;
+  --brand-tint: #D8EDF3;
+  --target: #218B71;
+  --border: #CADDE4;
+  background: linear-gradient(135deg, #EAF3F7 0%, #F5EEE6 100%);
+}
+
+.appOuter.theme-teen .phone { box-shadow: 0 24px 60px -20px rgba(40, 91, 118, 0.28); }
+.appOuter.theme-teen .screenTitle { font-weight: 700; }
+
+.appOuter.theme-young_adult {
+  --bg: #F2F0EA;
+  --surface: #FFFFFF;
+  --ink: #26332D;
+  --ink-soft: #667169;
+  --brand: #3C6B59;
+  --brand-dark: #28503F;
+  --brand-tint: #E1ECE5;
+  --target: #2B896A;
+  --border: #D8D9D0;
+  background: linear-gradient(135deg, #F2F0EA 0%, #E7EFE9 100%);
+}
+
+.appOuter.theme-young_adult .phone { box-shadow: 0 24px 60px -20px rgba(38, 51, 45, 0.25); }
+.appOuter.theme-young_adult .screen { padding-top: 18px; }
+.appOuter.theme-young_adult .card,
+.appOuter.theme-young_adult .tile { border-radius: 12px; }
+
 .phone {
   width: 380px;
   max-width: 100%;
@@ -104,6 +158,20 @@
   font-size: 15px; font-family: inherit; color: var(--ink); background: var(--surface);
 }
 .textInput:focus { outline: 2px solid var(--brand); outline-offset: 1px; border-color: var(--brand); }
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.profileDetails { border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+.profileSummary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 14px; font-weight: 600; }
+.profileDetails[open] .profileSummary { margin-bottom: 14px; }
+.profileSummary::marker { content: ""; }
+.profileInfoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
+.profileInfoGrid > div { min-width: 0; }
+.profileInfoLabel, .profileInfoValue { display: block; }
+.profileInfoLabel { color: var(--ink-soft); font-size: 11px; margin-bottom: 3px; }
+.profileInfoValue { font-size: 14px; overflow-wrap: anywhere; }
+.profileAction { margin-top: 16px; }
+.profileEditForm { display: flex; flex-direction: column; }
+.profileEditActions { display: flex; gap: 8px; margin-top: 16px; }
+.profileEditActions .btnGhost, .profileEditActions .btnPrimary { flex: 1; margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .bigInput { font-size: 28px; font-weight: 600; text-align: center; padding: 18px; }
 
 .ageList { display: flex; flex-direction: column; gap: 10px; }
