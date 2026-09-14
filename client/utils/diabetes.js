@@ -1,3 +1,52 @@
+export const GLUCOSE_RANGES = [
+  {
+    key: "very-low",
+    label: "Very low",
+    min: 0,
+    max: 3,
+    color: "#B94747",
+    fill: "#FDECEC",
+  },
+  {
+    key: "low",
+    label: "Low",
+    min: 3,
+    max: 4,
+    color: "#3E7CB8",
+    fill: "#E5EFF8",
+  },
+  {
+    key: "target",
+    label: "In range",
+    min: 4,
+    max: 7.8,
+    color: "#2F9E6E",
+    fill: "#E3F2EC",
+  },
+  {
+    key: "high",
+    label: "High",
+    min: 7.8,
+    max: 14,
+    color: "#C1622B",
+    fill: "#F7E9E0",
+  },
+  {
+    key: "very-high",
+    label: "Very high",
+    min: 14,
+    max: 18,
+    color: "#A6531C",
+    fill: "#FBE6D8",
+  },
+];
+
+export function glucoseRangePosition(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.min(100, Math.max(0, (numericValue / 18) * 100));
+}
+
 export function ageGroupFromDateOfBirth(dateOfBirth, today = new Date()) {
   const birthDate = new Date(`${dateOfBirth}T00:00:00`);
   if (!dateOfBirth || Number.isNaN(birthDate.getTime()) || birthDate > today) {
@@ -15,6 +64,13 @@ export function ageGroupFromDateOfBirth(dateOfBirth, today = new Date()) {
   if (age <= 12) return "child";
   if (age <= 18) return "teen";
   return "young_adult";
+}
+
+export function getTimeOfDayGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 }
 
 export function fmt(v) {

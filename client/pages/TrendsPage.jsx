@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "../components/Card";
+import { GLUCOSE_RANGES } from "../utils/diabetes";
 
 function formatReadingDate(dateValue, fallbackLabel = "Reading") {
   const stamp = dateValue ? new Date(dateValue) : null;
@@ -92,13 +93,18 @@ export function TrendsPage({ readings = [], onBack }) {
         <ResponsiveContainer width="100%" height={190}>
           <LineChart
             data={chartData}
-            margin={{ top: 8, right: 8, left: -18, bottom: 0 }}
+            margin={{ top: 8, right: 8, left: 4, bottom: 0 }}
           >
             <CartesianGrid stroke="#E8E4D8" vertical={false} />
-            <ReferenceArea y1={0} y2={3} fill="#FDECEC" fillOpacity={0.7} />
-            <ReferenceArea y1={3} y2={4} fill="#FBE9E7" fillOpacity={0.65} />
-            <ReferenceArea y1={4} y2={7.8} fill="#2F9E6E" fillOpacity={0.1} />
-            <ReferenceArea y1={14} y2={18} fill="#FBE6D8" fillOpacity={0.7} />
+            {GLUCOSE_RANGES.map((band) => (
+              <ReferenceArea
+                key={band.key}
+                y1={band.min}
+                y2={band.max}
+                fill={band.fill}
+                fillOpacity={0.82}
+              />
+            ))}
             <XAxis
               dataKey="t"
               tick={{ fontSize: 11, fill: "#5B675E" }}
@@ -107,10 +113,11 @@ export function TrendsPage({ readings = [], onBack }) {
             />
             <YAxis
               domain={[0, 18]}
+              ticks={[0, 3, 4, 7.8, 14, 18]}
               tick={{ fontSize: 11, fill: "#5B675E" }}
               axisLine={false}
               tickLine={false}
-              width={34}
+              width={44}
             />
             <Tooltip
               contentStyle={{
@@ -124,7 +131,7 @@ export function TrendsPage({ readings = [], onBack }) {
             <Line
               type="monotone"
               dataKey="v"
-              stroke="#2D6A4F"
+              stroke="#176B5B"
               strokeWidth={2.5}
               dot={{ r: 4, fill: "#2D6A4F" }}
             />

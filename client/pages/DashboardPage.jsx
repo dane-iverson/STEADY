@@ -8,7 +8,12 @@ import {
   User,
 } from "lucide-react";
 import { AGE_GROUPS, COPY } from "../data/appData";
-import { statusOf } from "../utils/diabetes";
+import {
+  getTimeOfDayGreeting,
+  glucoseRangePosition,
+  GLUCOSE_RANGES,
+  statusOf,
+} from "../utils/diabetes";
 import { Card } from "../components/Card";
 import {
   formatReminderWhen,
@@ -87,7 +92,7 @@ export function DashboardPage({
         <div>
           <span className="sectionKicker">YOUR DAILY CHECK-IN</span>
           <h2 className="screenTitle">
-            {c.greeting}, {name || "there"}
+            {getTimeOfDayGreeting()}, {name || "there"}
           </h2>
           <p className="screenSub">{c.dashSubtitle}</p>
         </div>
@@ -118,13 +123,32 @@ export function DashboardPage({
             {Number(last.v).toFixed(1)}{" "}
             <span className="bigNumberUnit">mmol/L</span>
           </div>
-          <div className="rangeTrack">
-            <span className="rangeTrackFill" />
+          <div
+            className="rangeTrack"
+            aria-label={`Last reading ${Number(last.v).toFixed(1)} mmol/L`}
+          >
+            {GLUCOSE_RANGES.map((band) => (
+              <span
+                key={band.key}
+                className="rangeTrackSegment"
+                style={{
+                  backgroundColor: band.color,
+                  flex: band.max - band.min,
+                }}
+              />
+            ))}
+            <span
+              className="rangeTrackMarker"
+              style={{ left: `${glucoseRangePosition(last.v)}%` }}
+              title={`${Number(last.v).toFixed(1)} mmol/L`}
+            />
           </div>
           <div className="rangeScale">
-            <span>Low</span>
-            <span>Target range</span>
-            <span>High</span>
+            {GLUCOSE_RANGES.map((band) => (
+              <span key={band.key} style={{ flex: band.max - band.min }}>
+                {band.label}
+              </span>
+            ))}
           </div>
         </Card>
       )}

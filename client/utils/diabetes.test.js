@@ -4,6 +4,9 @@ import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
   formatReadingStamp,
+  getTimeOfDayGreeting,
+  glucoseRangePosition,
+  GLUCOSE_RANGES,
   normalizeDecimalInput,
   statusOf,
 } from "./diabetes.js";
@@ -23,6 +26,28 @@ test("normalizes comma decimal input to a period", () => {
     buildReadingEntry("5,6", "Before meal", new Date("2026-09-10T08:35:00")).v,
     5.6,
   );
+});
+
+test("uses a time-of-day greeting", () => {
+  assert.equal(
+    getTimeOfDayGreeting(new Date("2026-09-14T08:00:00")),
+    "Good morning",
+  );
+  assert.equal(
+    getTimeOfDayGreeting(new Date("2026-09-14T12:00:00")),
+    "Good afternoon",
+  );
+  assert.equal(
+    getTimeOfDayGreeting(new Date("2026-09-14T18:00:00")),
+    "Good evening",
+  );
+});
+
+test("positions dashboard readings across the glucose range", () => {
+  assert.equal(GLUCOSE_RANGES.length, 5);
+  assert.equal(glucoseRangePosition(0), 0);
+  assert.equal(glucoseRangePosition(9), 50);
+  assert.equal(glucoseRangePosition(30), 100);
 });
 
 test("classifies before-meal mmol readings using SA ranges", () => {

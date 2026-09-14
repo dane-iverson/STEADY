@@ -147,13 +147,13 @@ export default function App() {
     if (!token) return;
 
     const payload = {
-      name,
       ageGroup,
       readings,
       reminders,
       profile,
       sharing,
       ...nextOverrides,
+      name: nextOverrides.name ?? nextOverrides.profile?.name ?? name,
     };
 
     try {

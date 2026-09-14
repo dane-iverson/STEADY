@@ -1,5 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
 .appOuter {
   --bg: #EEF4F2;
   --surface: #FFFFFF;
@@ -14,12 +28,16 @@
   --border: #D7E3DF;
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: radial-gradient(circle at 18% 12%, #FFFFFF 0, transparent 26%), var(--bg);
   padding: 28px 12px;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 .appOuter * { box-sizing: border-box; }
 
@@ -88,6 +106,7 @@
   box-shadow: 0 28px 70px -24px rgba(22, 67, 58, 0.24);
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
   color: var(--ink);
 }
@@ -108,9 +127,9 @@
   cursor: pointer; font-family: inherit;
 }
 
-.phoneBody { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+.phoneBody { flex: 1; min-width: 0; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column; }
 
-.screen { padding: 24px 20px 26px; display: flex; flex-direction: column; flex: 1; }
+.screen { min-width: 0; max-width: 100%; padding: 24px 20px 26px; display: flex; flex-direction: column; flex: 1; }
 .screen.center { align-items: center; text-align: center; }
 
 .screenTitle { font-family: 'Manrope', sans-serif; font-size: 25px; font-weight: 800; margin: 5px 0 4px; letter-spacing: -0.5px; }
@@ -202,9 +221,13 @@
 .statusTag-neutral { color: var(--ink-soft); background: var(--bg); font-weight: 500; }
 .readingStamp { color: var(--ink-soft); font-size: 11px; }
 .clinicalNumber { font-family: 'Manrope', sans-serif; font-size: 42px; letter-spacing: -1.5px; margin-top: 10px; }
-.rangeTrack { height: 7px; background: linear-gradient(90deg, #DDE8EF 0 22%, var(--target) 22% 76%, #F4DDD4 76%); border-radius: 10px; overflow: hidden; margin-top: 15px; }
-.rangeTrackFill { display: block; height: 100%; width: 56%; background: var(--brand); border-radius: inherit; opacity: .9; }
-.rangeScale { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 9px; margin-top: 5px; }
+.rangeTrack { position: relative; display: flex; height: 9px; border-radius: 10px; overflow: visible; margin: 15px 5px 0; }
+.rangeTrackSegment { display: block; height: 100%; opacity: .82; }
+.rangeTrackSegment:first-child { border-radius: 10px 0 0 10px; }
+.rangeTrackSegment:last-of-type { border-radius: 0 10px 10px 0; }
+.rangeTrackMarker { position: absolute; top: 50%; width: 15px; height: 15px; border: 3px solid var(--surface); background: var(--ink); border-radius: 50%; box-shadow: 0 1px 5px rgba(22, 45, 40, .35); transform: translate(-50%, -50%); }
+.rangeScale { display: flex; justify-content: space-between; gap: 3px; color: var(--ink-soft); font-size: 8px; margin: 7px 0 0; }
+.rangeScale span { flex: 1; text-align: center; }
 .clinicalIcon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--brand-tint); color: var(--brand-dark); }
 .clinicalIcon-warm { background: #FFF0D7; color: #A96829; }
 .dashboardIntro { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
@@ -308,6 +331,6 @@
 .navItemActive { color: var(--brand-dark); background: var(--brand-tint); }
 
 @media (max-width: 520px) {
-  .appOuter { padding: 0; align-items: stretch; }
-  .phone { width: 100%; max-width: none; height: 100vh; max-height: none; border: 0; border-radius: 0; }
+  .appOuter { width: 100%; max-width: 100vw; padding: 0; align-items: stretch; }
+  .phone { width: 100%; max-width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
 }
