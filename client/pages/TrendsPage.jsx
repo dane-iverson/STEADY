@@ -19,6 +19,7 @@ function formatReadingDate(dateValue, fallbackLabel = "Reading") {
     const time = stamp.toLocaleTimeString([], {
       hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
     const day = stamp.toLocaleDateString([], { weekday: "short" });
     return `${day}, ${time}`;

@@ -26,6 +26,7 @@ export function DashboardPage({
   const c = COPY[AGE_GROUPS[ageGroup].tone];
   const last = readings[readings.length - 1];
   const lastStatus = last ? statusOf(last.v, last.context || "Random") : null;
+  const activeReminders = reminders.filter((r) => r.on).length;
   const now = new Date();
   // find next upcoming active reminder
   const upcomingCandidates = reminders
@@ -81,44 +82,77 @@ export function DashboardPage({
   ];
 
   return (
-    <div className="screen">
-      <h2 className="screenTitle">
-        {c.greeting}, {name}
-      </h2>
-      <p className="screenSub">{c.dashSubtitle}</p>
+    <div className="screen dashboardScreen">
+      <div className="dashboardIntro">
+        <div>
+          <span className="sectionKicker">YOUR DAILY CHECK-IN</span>
+          <h2 className="screenTitle">
+            {c.greeting}, {name || "there"}
+          </h2>
+          <p className="screenSub">{c.dashSubtitle}</p>
+        </div>
+        <div className="careBadge" aria-label="Care plan on track">
+          <span className="careBadgeDot" />
+          <span>Care plan</span>
+        </div>
+      </div>
 
       {last && (
-        <Card>
+        <Card style={{ marginBottom: 14 }}>
+          <div className="clinicalCardHeader">
+            <div>
+              <span className="sectionKicker">LATEST READING</span>
+              <div className="cardMainLine">Blood glucose</div>
+            </div>
+            <span className="statusTag statusTag-neutral">
+              {last.context || "Random"}
+            </span>
+          </div>
           <div className="rowBetween">
-            <span className="cardEyebrow">Last reading</span>
             <span className={"statusTag statusTag-" + lastStatus.key}>
               {lastStatus.symbol} {lastStatus.label}
             </span>
+            <span className="readingStamp">{last.time}</span>
           </div>
-          <div className="bigNumber">
+          <div className="bigNumber clinicalNumber">
             {Number(last.v).toFixed(1)}{" "}
             <span className="bigNumberUnit">mmol/L</span>
           </div>
-          <div className="mutedSmall">
-            {last.context || "Random"} · {last.time}
+          <div className="rangeTrack">
+            <span className="rangeTrackFill" />
+          </div>
+          <div className="rangeScale">
+            <span>Low</span>
+            <span>Target range</span>
+            <span>High</span>
           </div>
         </Card>
       )}
 
       {nextReminder && (
-        <Card>
+        <Card style={{ marginBottom: 14 }}>
           <div className="rowBetween">
-            <span className="cardEyebrow">Upcoming reminder</span>
-            <Bell size={16} />
+            <div>
+              <span className="sectionKicker">NEXT ON YOUR PLAN</span>
+              <div className="cardMainLine">{nextReminder.title}</div>
+            </div>
+            <div className="clinicalIcon clinicalIcon-warm">
+              <Bell size={17} />
+            </div>
           </div>
-          <div className="cardMainLine">{nextReminder.title}</div>
           <div className="mutedSmall">
             {formatNextOccurrence(upcomingCandidates[0].next)}
           </div>
         </Card>
       )}
 
-      <div className="tileGrid">
+      <div className="sectionHeading">
+        <span className="sectionKicker">CARE TOOLS</span>
+        <span className="sectionHeadingMeta">
+          {activeReminders} active reminders
+        </span>
+      </div>
+      <div className="tileGrid careToolGrid">
         {tiles.map((t) => {
           const Icon = t.icon;
           return (

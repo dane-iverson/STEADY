@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronLeft, UserRound } from "lucide-react";
+import { Activity, ChevronLeft, UserRound } from "lucide-react";
 import { StatusPill } from "./StatusPill";
 
 export function TopBar({ title, onBack, online, onToggleOnline, onProfile }) {
@@ -13,7 +13,15 @@ export function TopBar({ title, onBack, online, onToggleOnline, onProfile }) {
         ) : (
           <div style={{ width: 32 }} />
         )}
-        <h1>{title}</h1>
+        <div className="topbarIdentity">
+          <div className="topbarBrandMark">
+            <Activity size={15} strokeWidth={2.8} />
+          </div>
+          <div>
+            <span className="topbarEyebrow">STEADY CARE</span>
+            <h1>{title}</h1>
+          </div>
+        </div>
         <button
           className="iconBtn"
           onClick={onProfile}

@@ -1,39 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
 
 .appOuter {
-  --bg: #F6F4EF;
+  --bg: #EEF4F2;
   --surface: #FFFFFF;
   --ink: #1E2A22;
   --ink-soft: #5B675E;
-  --brand: #2D6A4F;
-  --brand-dark: #1F4E39;
-  --brand-tint: #E4EFE8;
+  --brand: #176B5B;
+  --brand-dark: #0E4C42;
+  --brand-tint: #DCEFEA;
   --target: #2F9E6E;
   --low: #3E7CB8;
   --high: #C1622B;
-  --border: #E2DED4;
-  font-family: 'Lexend', sans-serif;
+  --border: #D7E3DF;
+  font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background: radial-gradient(circle at 18% 12%, #FFFFFF 0, transparent 26%), var(--bg);
   padding: 28px 12px;
   box-sizing: border-box;
 }
 .appOuter * { box-sizing: border-box; }
 
 .appOuter.theme-child {
-  --bg: #FFF4D6;
+  --bg: #FFF5E8;
   --surface: #FFFEF8;
   --ink: #283442;
   --ink-soft: #68727D;
-  --brand: #E56B3F;
-  --brand-dark: #B94A2C;
-  --brand-tint: #FFE4B8;
+  --brand: #E5653F;
+  --brand-dark: #A9472E;
+  --brand-tint: #FFE1C2;
   --target: #279B74;
-  --border: #F0D5AA;
-  background: linear-gradient(135deg, #FFF4D6 0%, #E5F5EE 100%);
+  --border: #F0D7BD;
+  background: radial-gradient(circle at 80% 5%, #FFFFFF 0, transparent 24%), linear-gradient(135deg, #FFF5E8 0%, #E6F4EE 100%);
 }
 
 .appOuter.theme-child .phone { border-radius: 38px; box-shadow: 0 24px 60px -20px rgba(181, 105, 48, 0.3); }
@@ -44,32 +44,32 @@
 .appOuter.theme-child .tile { border-width: 1.5px; }
 
 .appOuter.theme-teen {
-  --bg: #EAF3F7;
+  --bg: #EAF4F7;
   --surface: #FFFFFF;
   --ink: #1F3040;
   --ink-soft: #617181;
-  --brand: #287E9E;
-  --brand-dark: #1B5B76;
-  --brand-tint: #D8EDF3;
+  --brand: #16758E;
+  --brand-dark: #0E5069;
+  --brand-tint: #D7EDF2;
   --target: #218B71;
-  --border: #CADDE4;
-  background: linear-gradient(135deg, #EAF3F7 0%, #F5EEE6 100%);
+  --border: #C9DFE5;
+  background: radial-gradient(circle at 80% 5%, #FFFFFF 0, transparent 24%), linear-gradient(135deg, #EAF4F7 0%, #F7F0E8 100%);
 }
 
 .appOuter.theme-teen .phone { box-shadow: 0 24px 60px -20px rgba(40, 91, 118, 0.28); }
 .appOuter.theme-teen .screenTitle { font-weight: 700; }
 
 .appOuter.theme-young_adult {
-  --bg: #F2F0EA;
+  --bg: #F0F4F1;
   --surface: #FFFFFF;
   --ink: #26332D;
   --ink-soft: #667169;
-  --brand: #3C6B59;
-  --brand-dark: #28503F;
-  --brand-tint: #E1ECE5;
+  --brand: #176B5B;
+  --brand-dark: #0E4C42;
+  --brand-tint: #DCEFEA;
   --target: #2B896A;
-  --border: #D8D9D0;
-  background: linear-gradient(135deg, #F2F0EA 0%, #E7EFE9 100%);
+  --border: #D3E0D9;
+  background: radial-gradient(circle at 80% 5%, #FFFFFF 0, transparent 24%), linear-gradient(135deg, #F0F4F1 0%, #E5F0EA 100%);
 }
 
 .appOuter.theme-young_adult .phone { box-shadow: 0 24px 60px -20px rgba(38, 51, 45, 0.25); }
@@ -83,18 +83,21 @@
   height: 780px;
   max-height: 92vh;
   background: var(--surface);
-  border-radius: 34px;
+  border-radius: 28px;
   border: 1px solid var(--border);
-  box-shadow: 0 24px 60px -20px rgba(30,42,34,0.25);
+  box-shadow: 0 28px 70px -24px rgba(22, 67, 58, 0.24);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--ink);
 }
 
-.topbar { padding: 16px 18px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.topbar { padding: 15px 18px 11px; border-bottom: 1px solid var(--border); background: var(--brand-tint); flex-shrink: 0; }
 .topbarRow { display: flex; align-items: center; justify-content: space-between; }
-.topbarRow h1 { font-size: 17px; font-weight: 600; margin: 0; }
+.topbarIdentity { display: flex; align-items: center; gap: 9px; }
+.topbarBrandMark { width: 28px; height: 28px; border-radius: 9px; background: var(--brand); color: #fff; display: grid; place-items: center; }
+.topbarEyebrow, .sectionKicker { display: block; color: var(--ink-soft); font-size: 9px; font-weight: 800; letter-spacing: 1.2px; }
+.topbarRow h1 { font-family: 'Manrope', sans-serif; font-size: 17px; font-weight: 800; line-height: 1.15; margin: 2px 0 0; }
 .iconBtn { background: none; border: none; padding: 6px; cursor: pointer; color: var(--ink); display: flex; border-radius: 8px; }
 .iconBtn:hover { background: var(--bg); }
 
@@ -107,10 +110,10 @@
 
 .phoneBody { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
 
-.screen { padding: 20px 20px 24px; display: flex; flex-direction: column; flex: 1; }
+.screen { padding: 24px 20px 26px; display: flex; flex-direction: column; flex: 1; }
 .screen.center { align-items: center; text-align: center; }
 
-.screenTitle { font-size: 23px; font-weight: 600; margin: 4px 0 4px; letter-spacing: -0.3px; }
+.screenTitle { font-family: 'Manrope', sans-serif; font-size: 25px; font-weight: 800; margin: 5px 0 4px; letter-spacing: -0.5px; }
 .screenSub { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 16px; line-height: 1.5; }
 .bodyText { font-size: 14.5px; line-height: 1.65; color: var(--ink); }
 
@@ -125,7 +128,7 @@
 .fineprint { font-size: 11.5px; color: var(--ink-soft); margin-top: 12px; line-height: 1.5; }
 
 .btnPrimary {
-  background: var(--brand); color: #fff; border: none; border-radius: 14px;
+  background: var(--brand); color: #fff; border: none; border-radius: 11px;
   padding: 15px 18px; font-size: 15.5px; font-weight: 600; width: 100%;
   cursor: pointer; font-family: inherit; margin-top: 4px;
 }
@@ -134,7 +137,7 @@
 
 .btnGhost {
   background: none; color: var(--brand-dark); border: 1.5px solid var(--border);
-  border-radius: 14px; padding: 13px 18px; font-size: 14.5px; font-weight: 600;
+  border-radius: 11px; padding: 13px 18px; font-size: 14.5px; font-weight: 600;
   width: 100%; cursor: pointer; font-family: inherit; margin-top: 10px;
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
@@ -188,13 +191,28 @@
 .ageOptionName { font-size: 15.5px; font-weight: 500; }
 
 .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-  padding: 16px; margin-bottom: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 17px; margin-bottom: 12px; box-shadow: 0 5px 18px -14px rgba(20, 65, 56, 0.32);
 }
 .rowBetween { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rowGap { display: flex; align-items: center; gap: 8px; }
 .cardEyebrow { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
 .cardMainLine { font-size: 15px; font-weight: 500; margin-top: 2px; }
+.clinicalCardHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+.statusTag-neutral { color: var(--ink-soft); background: var(--bg); font-weight: 500; }
+.readingStamp { color: var(--ink-soft); font-size: 11px; }
+.clinicalNumber { font-family: 'Manrope', sans-serif; font-size: 42px; letter-spacing: -1.5px; margin-top: 10px; }
+.rangeTrack { height: 7px; background: linear-gradient(90deg, #DDE8EF 0 22%, var(--target) 22% 76%, #F4DDD4 76%); border-radius: 10px; overflow: hidden; margin-top: 15px; }
+.rangeTrackFill { display: block; height: 100%; width: 56%; background: var(--brand); border-radius: inherit; opacity: .9; }
+.rangeScale { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 9px; margin-top: 5px; }
+.clinicalIcon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--brand-tint); color: var(--brand-dark); }
+.clinicalIcon-warm { background: #FFF0D7; color: #A96829; }
+.dashboardIntro { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.dashboardIntro .screenSub { margin-bottom: 0; }
+.careBadge { display: flex; align-items: center; gap: 5px; color: var(--brand-dark); font-size: 10px; font-weight: 700; background: var(--brand-tint); padding: 7px 9px; border-radius: 20px; white-space: nowrap; margin-top: 4px; }
+.careBadgeDot { width: 6px; height: 6px; background: var(--target); border-radius: 50%; }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 9px; }
+.sectionHeadingMeta { color: var(--ink-soft); font-size: 10px; }
 .mutedSmall { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
 .bigNumber { font-size: 34px; font-weight: 700; margin-top: 8px; letter-spacing: -0.5px; }
 .bigNumberUnit { font-size: 14px; font-weight: 500; color: var(--ink-soft); }
@@ -210,10 +228,12 @@
 .tileGrid.twoCol { grid-template-columns: 1fr 1fr 1fr; }
 .tile {
   border: 1px solid var(--border); background: var(--surface); border-radius: 16px;
-  padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px;
+  padding: 15px; text-align: left; display: flex; flex-direction: column; gap: 7px;
   cursor: pointer; font-family: inherit; color: var(--ink);
+  box-shadow: 0 5px 16px -15px rgba(20, 65, 56, 0.45);
 }
-.tile:hover { border-color: var(--brand); }
+.tile:hover { border-color: var(--brand); transform: translateY(-1px); }
+.tile svg { color: var(--brand); }
 .tileLabel { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
 .tileDesc { font-size: 11.5px; color: var(--ink-soft); }
 
@@ -277,11 +297,17 @@
 
 .navbar {
   display: flex; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
-  padding: 8px 4px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  padding: 9px 7px calc(env(safe-area-inset-bottom, 0px) + 9px); gap: 4px;
 }
 .navItem {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px;
-  background: none; border: none; color: var(--ink-soft); cursor: pointer; font-family: inherit;
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 2px;
+  background: none; border: none; color: var(--ink-soft); cursor: pointer; font-family: inherit; border-radius: 10px;
 }
 .navItem span { font-size: 10px; font-weight: 500; }
-.navItemActive { color: var(--brand-dark); }
+.navItem:hover { background: var(--bg); }
+.navItemActive { color: var(--brand-dark); background: var(--brand-tint); }
+
+@media (max-width: 520px) {
+  .appOuter { padding: 0; align-items: stretch; }
+  .phone { width: 100%; max-width: none; height: 100vh; max-height: none; border: 0; border-radius: 0; }
+}

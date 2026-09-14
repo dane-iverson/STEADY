@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Check, ChevronLeft, List } from "lucide-react";
 import { AGE_GROUPS, COPY } from "../data/appData.js";
 import { Card } from "../components/Card";
-import { statusOf } from "../utils/diabetes.js";
+import { normalizeDecimalInput, statusOf } from "../utils/diabetes.js";
 
 export function GlucoseRecordingPage({
   ageGroup,
@@ -89,7 +89,7 @@ export function GlucoseRecordingPage({
             placeholder="e.g. 5.6"
             value={value}
             onChange={(e) => {
-              const next = e.target.value
+              const next = normalizeDecimalInput(e.target.value)
                 .replace(/[^0-9.]/g, "")
                 .replace(/(\..*)\./g, "$1");
               setValue(next);

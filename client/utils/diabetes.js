@@ -21,6 +21,10 @@ export function fmt(v) {
   return Number(v).toFixed(1);
 }
 
+export function normalizeDecimalInput(value) {
+  return String(value ?? "").replace(/,/g, ".");
+}
+
 export function formatReadingStamp(dateValue) {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) return "Reading";
@@ -71,7 +75,7 @@ export function buildReadingEntry(
 
   return {
     id: `reading-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    v: Number(value),
+    v: Number(normalizeDecimalInput(value)),
     context,
     date: nextDate.toISOString(),
     time: formatReadingStamp(nextDate),

@@ -3,11 +3,11 @@ import { Bell, BookOpen, Droplet, ShieldAlert, TrendingUp } from "lucide-react";
 
 export function NavBar({ screen, setScreen }) {
   const items = [
-    { id: "dashboard", label: "Home", icon: Droplet },
+    { id: "dashboard", label: "Today", icon: Droplet },
     { id: "trends", label: "Trends", icon: TrendingUp },
-    { id: "reminders", label: "Reminders", icon: Bell },
+    { id: "reminders", label: "Plan", icon: Bell },
     { id: "education", label: "Learn", icon: BookOpen },
-    { id: "emergency", label: "Emergency", icon: ShieldAlert },
+    { id: "emergency", label: "Help", icon: ShieldAlert },
   ];
 
   return (

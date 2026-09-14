@@ -4,6 +4,7 @@ import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
   formatReadingStamp,
+  normalizeDecimalInput,
   statusOf,
 } from "./diabetes.js";
 
@@ -14,6 +15,14 @@ test("derives the age group from date of birth", () => {
   assert.equal(ageGroupFromDateOfBirth("2008-09-15", today), "teen");
   assert.equal(ageGroupFromDateOfBirth("2000-01-01", today), "young_adult");
   assert.equal(ageGroupFromDateOfBirth("2027-01-01", today), null);
+});
+
+test("normalizes comma decimal input to a period", () => {
+  assert.equal(normalizeDecimalInput("5,6"), "5.6");
+  assert.equal(
+    buildReadingEntry("5,6", "Before meal", new Date("2026-09-10T08:35:00")).v,
+    5.6,
+  );
 });
 
 test("classifies before-meal mmol readings using SA ranges", () => {
