@@ -223,6 +223,14 @@ export function getReadingDateRange(
     start.setDate(start.getDate() - 29);
     return { start, end };
   }
+  if (range === "Last 3 months") {
+    start.setMonth(start.getMonth() - 3);
+    return { start, end };
+  }
+  if (range === "Last 6 months") {
+    start.setMonth(start.getMonth() - 6);
+    return { start, end };
+  }
   if (range === "This year") {
     start.setMonth(0, 1);
     return { start, end };

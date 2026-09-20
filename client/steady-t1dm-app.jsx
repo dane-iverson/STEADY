@@ -281,6 +281,7 @@ export default function App() {
           <TopBar
             title={titles[screen]}
             onBack={null}
+            onHome={() => setScreen("dashboard")}
             online={online}
             onToggleOnline={() => setOnline((o) => !o)}
             onProfile={() => setScreen("profile")}

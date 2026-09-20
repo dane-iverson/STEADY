@@ -5,8 +5,41 @@ import {
   exportReadingsToPdf,
   formatReadingStamp,
   getReadingDateRange,
+  readingsForDateRange,
   statusOf,
 } from "../utils/diabetes.js";
+
+const DISPLAY_RANGES = [
+  "All recordings",
+  "Today",
+  "This week",
+  "This month",
+  "Last 7 days",
+  "Last 30 days",
+  "Last 3 months",
+  "Last 6 months",
+  "This year",
+];
+
+const READING_TYPES = ["All types", "Before meal", "After meal", "Random"];
+
+function sortReadings(readings, sortBy) {
+  return [...readings].sort((first, second) => {
+    if (sortBy === "highest") return Number(second.v) - Number(first.v);
+    if (sortBy === "lowest") return Number(first.v) - Number(second.v);
+    if (sortBy === "type") {
+      return (first.context || "Random").localeCompare(
+        second.context || "Random",
+      );
+    }
+
+    const firstDate = new Date(first.date).getTime();
+    const secondDate = new Date(second.date).getTime();
+    return sortBy === "oldest"
+      ? firstDate - secondDate
+      : secondDate - firstDate;
+  });
+}
 
 export function GlucoseHistoryPage({
   readings = [],
@@ -17,10 +50,25 @@ export function GlucoseHistoryPage({
   profile,
   reminders,
 }) {
+  const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState("All recordings");
+  const [exportType, setExportType] = useState("All types");
+  const [exportSort, setExportSort] = useState("newest");
+  const [displayRange, setDisplayRange] = useState("Last 7 days");
+  const [displayType, setDisplayType] = useState("All types");
+  const [sortBy, setSortBy] = useState("newest");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const sortedReadings = [...readings].reverse();
+  const displayDateRange = getReadingDateRange(displayRange);
+  const displayedReadings = readingsForDateRange(
+    readings,
+    displayDateRange,
+  ).filter(
+    (reading) =>
+      displayType === "All types" ||
+      (reading.context || "Random") === displayType,
+  );
+  const sortedReadings = sortReadings(displayedReadings, sortBy);
   const customRangeInvalid =
     exportRange === "Custom" &&
     !getReadingDateRange(exportRange, customStart, customEnd);
@@ -28,16 +76,25 @@ export function GlucoseHistoryPage({
   function exportPdf() {
     const dateRange = getReadingDateRange(exportRange, customStart, customEnd);
     if (customRangeInvalid) return;
+    const exportReadings = sortReadings(
+      readingsForDateRange(readings, dateRange).filter(
+        (reading) =>
+          exportType === "All types" ||
+          (reading.context || "Random") === exportType,
+      ),
+      exportSort,
+    );
     exportReadingsToPdf({
-      readings,
+      readings: exportReadings,
       profile,
       reminders,
-      dateRange,
+      dateRange: null,
       rangeLabel:
         exportRange === "Custom"
           ? `${customStart} to ${customEnd}`
           : exportRange,
     });
+    setExportOpen(false);
   }
 
   return (
@@ -67,75 +124,213 @@ export function GlucoseHistoryPage({
         <p className="exportPanelHint">
           Choose which saved readings to include in your PDF.
         </p>
-        <div className="exportOptions">
-          <label className="fieldLabel" htmlFor="export-range">
-            Date range
-          </label>
-          <select
-            id="export-range"
-            className="textInput"
-            value={exportRange}
-            onChange={(event) => setExportRange(event.target.value)}
-          >
-            {[
-              "All recordings",
-              "Today",
-              "This week",
-              "This month",
-              "Last 7 days",
-              "Last 30 days",
-              "This year",
-              "Custom",
-            ].map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-
-          {exportRange === "Custom" && (
-            <div className="exportDateGrid">
-              <div>
-                <label className="fieldLabel" htmlFor="export-start">
-                  From
-                </label>
-                <input
-                  id="export-start"
-                  className="textInput"
-                  type="date"
-                  value={customStart}
-                  onChange={(event) => setCustomStart(event.target.value)}
-                />
-              </div>
-              <div>
-                <label className="fieldLabel" htmlFor="export-end">
-                  To
-                </label>
-                <input
-                  id="export-end"
-                  className="textInput"
-                  type="date"
-                  value={customEnd}
-                  onChange={(event) => setCustomEnd(event.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          {customRangeInvalid && (
-            <div className="exportValidation" role="status">
-              Choose a valid start and end date.
-            </div>
-          )}
-        </div>
         <button
           className="btnPrimary exportButton"
           type="button"
-          disabled={customRangeInvalid}
-          onClick={exportPdf}
+          onClick={() => setExportOpen(true)}
         >
           <Download size={16} />
           Export to PDF
         </button>
+      </section>
+
+      {exportOpen && (
+        <div
+          className="modalBackdrop"
+          role="presentation"
+          onClick={() => setExportOpen(false)}
+        >
+          <section
+            className="modalPanel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="export-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="exportPanelHeader">
+              <div>
+                <div className="sectionKicker">REPORT</div>
+                <h3 id="export-title">Export glucose record</h3>
+              </div>
+              <button
+                className="iconBtn"
+                type="button"
+                aria-label="Close export dialog"
+                onClick={() => setExportOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="exportOptions">
+              <label className="fieldLabel" htmlFor="export-range">
+                Date range
+              </label>
+              <select
+                id="export-range"
+                className="textInput"
+                value={exportRange}
+                onChange={(event) => setExportRange(event.target.value)}
+              >
+                {[
+                  "All recordings",
+                  "Today",
+                  "This week",
+                  "This month",
+                  "Last 7 days",
+                  "Last 30 days",
+                  "Last 3 months",
+                  "Last 6 months",
+                  "This year",
+                  "Custom",
+                ].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+
+              {exportRange === "Custom" && (
+                <div className="exportDateGrid">
+                  <div>
+                    <label className="fieldLabel" htmlFor="export-start">
+                      From
+                    </label>
+                    <input
+                      id="export-start"
+                      className="textInput"
+                      type="date"
+                      value={customStart}
+                      onChange={(event) => setCustomStart(event.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="fieldLabel" htmlFor="export-end">
+                      To
+                    </label>
+                    <input
+                      id="export-end"
+                      className="textInput"
+                      type="date"
+                      value={customEnd}
+                      onChange={(event) => setCustomEnd(event.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              <label className="fieldLabel" htmlFor="export-type">
+                Reading type
+              </label>
+              <select
+                id="export-type"
+                className="textInput"
+                value={exportType}
+                onChange={(event) => setExportType(event.target.value)}
+              >
+                {READING_TYPES.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              <label className="fieldLabel" htmlFor="export-sort">
+                Sort by
+              </label>
+              <select
+                id="export-sort"
+                className="textInput"
+                value={exportSort}
+                onChange={(event) => setExportSort(event.target.value)}
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="highest">Higher glucose first</option>
+                <option value="lowest">Lower glucose first</option>
+                <option value="type">Reading type</option>
+              </select>
+              {customRangeInvalid && (
+                <div className="exportValidation" role="status">
+                  Choose a valid start and end date.
+                </div>
+              )}
+            </div>
+            <button
+              className="btnPrimary exportButton"
+              type="button"
+              disabled={customRangeInvalid}
+              onClick={exportPdf}
+            >
+              <Download size={16} /> Export to PDF
+            </button>
+          </section>
+        </div>
+      )}
+
+      <section
+        className="readingOptions"
+        aria-labelledby="reading-options-title"
+      >
+        <div className="sectionHeading">
+          <div>
+            <div className="sectionKicker">SAVED READINGS</div>
+            <h3 id="reading-options-title">Choose what to display</h3>
+          </div>
+          <span className="sectionHeadingMeta">
+            {sortedReadings.length} shown
+          </span>
+        </div>
+        <div className="readingOptionGrid">
+          <div>
+            <label className="fieldLabel" htmlFor="display-range">
+              Date range
+            </label>
+            <select
+              id="display-range"
+              className="textInput"
+              value={displayRange}
+              onChange={(event) => setDisplayRange(event.target.value)}
+            >
+              {DISPLAY_RANGES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="fieldLabel" htmlFor="display-type">
+              Reading type
+            </label>
+            <select
+              id="display-type"
+              className="textInput"
+              value={displayType}
+              onChange={(event) => setDisplayType(event.target.value)}
+            >
+              {READING_TYPES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="fieldLabel" htmlFor="reading-sort">
+              Sort by
+            </label>
+            <select
+              id="reading-sort"
+              className="textInput"
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value)}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="highest">Higher glucose first</option>
+              <option value="lowest">Lower glucose first</option>
+              <option value="type">Reading type</option>
+            </select>
+          </div>
+        </div>
       </section>
 
       {sortedReadings.length === 0 ? (

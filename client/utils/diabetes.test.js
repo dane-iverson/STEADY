@@ -4,6 +4,7 @@ import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
   formatReadingStamp,
+  getReadingDateRange,
   getTimeOfDayGreeting,
   glucoseRangePosition,
   GLUCOSE_RANGES,
@@ -137,4 +138,29 @@ test("builds persisted readings with explicit date and time values", () => {
   assert.match(reading.time, /2026|Thu|Sep|8:35/);
   assert.equal(typeof reading.id, "string");
   assert.equal(formatReadingStamp(date), "Thu, 10 Sep 2026, 8:35am");
+});
+
+test("supports three and six month reading ranges", () => {
+  const now = new Date("2026-09-14T12:00:00");
+  const threeMonths = getReadingDateRange("Last 3 months", "", "", now);
+  const sixMonths = getReadingDateRange("Last 6 months", "", "", now);
+
+  assert.deepEqual(
+    [
+      threeMonths.start.getFullYear(),
+      threeMonths.start.getMonth(),
+      threeMonths.start.getDate(),
+    ],
+    [2026, 5, 14],
+  );
+  assert.deepEqual(
+    [
+      sixMonths.start.getFullYear(),
+      sixMonths.start.getMonth(),
+      sixMonths.start.getDate(),
+    ],
+    [2026, 2, 14],
+  );
+  assert.equal(threeMonths.end.getHours(), 23);
+  assert.equal(threeMonths.end.getMinutes(), 59);
 });

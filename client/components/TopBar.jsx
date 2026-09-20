@@ -1,14 +1,25 @@
 import React from "react";
-import { Activity, ChevronLeft, UserRound } from "lucide-react";
+import { Activity, ChevronLeft, Home, UserRound } from "lucide-react";
 import { StatusPill } from "./StatusPill";
 
-export function TopBar({ title, onBack, online, onToggleOnline, onProfile }) {
+export function TopBar({
+  title,
+  onBack,
+  onHome,
+  online,
+  onToggleOnline,
+  onProfile,
+}) {
   return (
     <div className="topbar">
       <div className="topbarRow">
         {onBack ? (
           <button className="iconBtn" onClick={onBack} aria-label="Back">
             <ChevronLeft size={20} />
+          </button>
+        ) : onHome ? (
+          <button className="iconBtn" onClick={onHome} aria-label="Home">
+            <Home size={19} />
           </button>
         ) : (
           <div style={{ width: 32 }} />

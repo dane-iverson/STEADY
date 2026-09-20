@@ -72,7 +72,7 @@ export function ProfilePage({
 
       {tab === "profile" && (
         <>
-          <details className="profileDetails" open>
+          <details className="profileDetails">
             <summary className="profileSummary">
               <span>Personal information</span>
               <ChevronDown size={17} />
