@@ -47,6 +47,17 @@ export function DashboardPage({
     ? upcomingCandidates[0].r
     : null;
 
+  function openCard(screen) {
+    setScreen(screen);
+  }
+
+  function handleCardKeyDown(event, screen) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openCard(screen);
+    }
+  }
+
   const tiles = [
     {
       id: "glucose",
@@ -103,7 +114,15 @@ export function DashboardPage({
       </div>
 
       {last && (
-        <Card style={{ marginBottom: 14 }}>
+        <Card
+          style={{ marginBottom: 14 }}
+          className="dashboardLinkCard"
+          role="button"
+          tabIndex={0}
+          aria-label="Open saved glucose readings"
+          onClick={() => openCard("glucoseHistory")}
+          onKeyDown={(event) => handleCardKeyDown(event, "glucoseHistory")}
+        >
           <div className="clinicalCardHeader">
             <div>
               <span className="sectionKicker">LATEST READING</span>
@@ -154,7 +173,15 @@ export function DashboardPage({
       )}
 
       {nextReminder && (
-        <Card style={{ marginBottom: 14 }}>
+        <Card
+          style={{ marginBottom: 14 }}
+          className="dashboardLinkCard"
+          role="button"
+          tabIndex={0}
+          aria-label="Open reminders"
+          onClick={() => openCard("reminders")}
+          onKeyDown={(event) => handleCardKeyDown(event, "reminders")}
+        >
           <div className="rowBetween">
             <div>
               <span className="sectionKicker">NEXT ON YOUR PLAN</span>

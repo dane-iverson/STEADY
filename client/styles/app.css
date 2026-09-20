@@ -231,6 +231,9 @@ body {
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
   padding: 17px; margin-bottom: 12px; box-shadow: 0 5px 18px -14px rgba(20, 65, 56, 0.32);
 }
+.dashboardLinkCard { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.dashboardLinkCard:hover { border-color: var(--brand); box-shadow: 0 8px 22px -14px rgba(20, 65, 56, 0.48); transform: translateY(-1px); }
+.dashboardLinkCard:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .rowBetween { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .rowGap { display: flex; align-items: center; gap: 8px; }
 .cardEyebrow { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
