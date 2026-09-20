@@ -333,6 +333,8 @@ export default function App() {
           {screen === "glucoseHistory" && (
             <GlucoseHistoryPage
               readings={readings}
+              profile={profile}
+              reminders={reminders}
               onEdit={(reading) => startEditReading(reading)}
               onDelete={deleteReading}
               onNew={() => {

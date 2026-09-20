@@ -1,7 +1,11 @@
 import React from "react";
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, Download, Plus } from "lucide-react";
 import { Card } from "../components/Card";
-import { formatReadingStamp, statusOf } from "../utils/diabetes.js";
+import {
+  exportReadingsToPdf,
+  formatReadingStamp,
+  statusOf,
+} from "../utils/diabetes.js";
 
 export function GlucoseHistoryPage({
   readings = [],
@@ -9,6 +13,8 @@ export function GlucoseHistoryPage({
   onDelete,
   onNew,
   onBack,
+  profile,
+  reminders,
 }) {
   const sortedReadings = [...readings].reverse();
 
@@ -26,6 +32,15 @@ export function GlucoseHistoryPage({
           <Plus size={16} />
           Add new reading
         </span>
+      </button>
+
+      <button
+        className="btnGhost"
+        type="button"
+        onClick={() => exportReadingsToPdf({ readings, profile, reminders })}
+      >
+        <Download size={16} />
+        Export to PDF
       </button>
 
       {sortedReadings.length === 0 ? (

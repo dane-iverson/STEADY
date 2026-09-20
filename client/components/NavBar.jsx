@@ -5,7 +5,7 @@ export function NavBar({ screen, setScreen }) {
   const items = [
     { id: "dashboard", label: "Today", icon: Droplet },
     { id: "trends", label: "Trends", icon: TrendingUp },
-    { id: "reminders", label: "Plan", icon: Bell },
+    { id: "reminders", label: "Remind", icon: Bell },
     { id: "education", label: "Learn", icon: BookOpen },
     { id: "emergency", label: "Help", icon: ShieldAlert },
   ];
