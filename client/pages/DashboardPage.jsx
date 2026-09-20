@@ -79,9 +79,9 @@ export function DashboardPage({
     },
     {
       id: "education",
-      label: "Diabetes Education Centre",
+      label: "Learn",
       icon: BookOpen,
-      desc: "Learn at your pace",
+      desc: "Diabetes Education Centre",
     },
     {
       id: "emergency",
