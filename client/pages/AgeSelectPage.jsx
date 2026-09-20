@@ -10,9 +10,17 @@ export function AgeSelectPage({ onSelect }) {
       </p>
       <div className="ageList">
         {Object.entries(AGE_GROUPS).map(([key, g]) => (
-          <button key={key} className="ageOption" onClick={() => onSelect(key)}>
+          <button
+            key={key}
+            className={`ageOption ageOption-${key}`}
+            onClick={() => onSelect(key)}
+          >
+            <span className="ageOptionAccent" aria-hidden="true" />
             <span className="ageOptionYears">{g.label}</span>
             <span className="ageOptionName">{g.name}</span>
+            <span className="ageOptionArrow" aria-hidden="true">
+              &rarr;
+            </span>
           </button>
         ))}
       </div>

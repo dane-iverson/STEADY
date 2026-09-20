@@ -207,7 +207,11 @@ export function DashboardPage({
         {tiles.map((t) => {
           const Icon = t.icon;
           return (
-            <button key={t.id} className="tile" onClick={() => setScreen(t.id)}>
+            <button
+              key={t.id}
+              className={`tile tile-${t.id}`}
+              onClick={() => setScreen(t.id)}
+            >
               <Icon size={22} strokeWidth={2} />
               <span className="tileLabel">{t.label}</span>
               <span className="tileDesc">{t.desc}</span>
