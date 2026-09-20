@@ -180,15 +180,81 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+export function getReadingDateRange(
+  range = "All recordings",
+  customStart = "",
+  customEnd = "",
+  now = new Date(),
+) {
+  if (range === "Custom") {
+    const start = customStart ? new Date(`${customStart}T00:00:00`) : null;
+    const end = customEnd ? new Date(`${customEnd}T23:59:59.999`) : null;
+    if (
+      !start ||
+      !end ||
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime()) ||
+      start > end
+    ) {
+      return null;
+    }
+    return { start, end };
+  }
+
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  if (range === "Today") return { start, end };
+  if (range === "This week") {
+    start.setDate(start.getDate() - start.getDay());
+    return { start, end };
+  }
+  if (range === "This month") {
+    start.setDate(1);
+    return { start, end };
+  }
+  if (range === "Last 7 days") {
+    start.setDate(start.getDate() - 6);
+    return { start, end };
+  }
+  if (range === "Last 30 days") {
+    start.setDate(start.getDate() - 29);
+    return { start, end };
+  }
+  if (range === "This year") {
+    start.setMonth(0, 1);
+    return { start, end };
+  }
+
+  return null;
+}
+
+export function readingsForDateRange(readings = [], dateRange) {
+  if (!dateRange) return [...readings];
+  return readings.filter((reading) => {
+    const date = new Date(reading.date);
+    return (
+      !Number.isNaN(date.getTime()) &&
+      date >= dateRange.start &&
+      date <= dateRange.end
+    );
+  });
+}
+
 export function exportReadingsToPdf({
   readings = [],
   profile = {},
   reminders = [],
+  dateRange = null,
+  rangeLabel = "All recordings",
 }) {
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) return false;
 
-  const sortedReadings = [...readings].reverse();
+  const filteredReadings = readingsForDateRange(readings, dateRange);
+  const sortedReadings = [...filteredReadings].reverse();
   const displayValue = (value) => escapeHtml(value || "Not provided");
   const readingRows = sortedReadings.length
     ? sortedReadings
@@ -223,7 +289,7 @@ export function exportReadingsToPdf({
     footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid #d7e3df; color: #5b675e; font-size: 9px; }
   </style></head><body><header><div><h1>Steady</h1><p>Glucose and care record</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header>
   <h2>Patient details</h2><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Date of birth</label><strong>${displayValue(profile.dateOfBirth)}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Height</label><strong>${displayValue(profile.height)}</strong></div><div class="detail"><label>Weight</label><strong>${displayValue(profile.weight)}</strong></div><div class="detail"><label>Gender</label><strong>${displayValue(profile.gender)}</strong></div><div class="detail"><label>Allergies</label><strong>${displayValue(profile.allergies)}</strong></div><div class="detail"><label>Other medication</label><strong>${displayValue(profile.otherMedication)}</strong></div><div class="detail"><label>Emergency contact</label><strong>${displayValue(`${profile.contactName || ""} ${profile.contactNumber || ""}`.trim())}</strong></div></div>
-  <h2>Saved glucose readings (${readings.length})</h2><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table>
+  <h2>Saved glucose readings (${filteredReadings.length})</h2><p>Export range: ${escapeHtml(rangeLabel)}</p><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table>
   <h2>Saved reminders</h2><table><thead><tr><th>Reminder</th><th>Type</th><th>Repeats</th><th>Status</th></tr></thead><tbody>${reminderRows}</tbody></table>
   <footer>This report contains data stored in Steady. It is intended to support conversations with your healthcare team and does not replace medical advice.</footer></body></html>`);
   printWindow.document.close();

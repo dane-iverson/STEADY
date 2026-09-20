@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { ChevronLeft, Download, Plus } from "lucide-react";
 import { Card } from "../components/Card";
 import {
   exportReadingsToPdf,
   formatReadingStamp,
+  getReadingDateRange,
   statusOf,
 } from "../utils/diabetes.js";
 
@@ -16,7 +17,28 @@ export function GlucoseHistoryPage({
   profile,
   reminders,
 }) {
+  const [exportRange, setExportRange] = useState("All recordings");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
   const sortedReadings = [...readings].reverse();
+  const customRangeInvalid =
+    exportRange === "Custom" &&
+    !getReadingDateRange(exportRange, customStart, customEnd);
+
+  function exportPdf() {
+    const dateRange = getReadingDateRange(exportRange, customStart, customEnd);
+    if (customRangeInvalid) return;
+    exportReadingsToPdf({
+      readings,
+      profile,
+      reminders,
+      dateRange,
+      rangeLabel:
+        exportRange === "Custom"
+          ? `${customStart} to ${customEnd}`
+          : exportRange,
+    });
+  }
 
   return (
     <div className="screen">
@@ -34,14 +56,87 @@ export function GlucoseHistoryPage({
         </span>
       </button>
 
-      <button
-        className="btnGhost"
-        type="button"
-        onClick={() => exportReadingsToPdf({ readings, profile, reminders })}
-      >
-        <Download size={16} />
-        Export to PDF
-      </button>
+      <section className="exportPanel" aria-labelledby="export-title">
+        <div className="exportPanelHeader">
+          <div>
+            <div className="sectionKicker">REPORT</div>
+            <h3 id="export-title">Export glucose record</h3>
+          </div>
+          <Download size={18} aria-hidden="true" />
+        </div>
+        <p className="exportPanelHint">
+          Choose which saved readings to include in your PDF.
+        </p>
+        <div className="exportOptions">
+          <label className="fieldLabel" htmlFor="export-range">
+            Date range
+          </label>
+          <select
+            id="export-range"
+            className="textInput"
+            value={exportRange}
+            onChange={(event) => setExportRange(event.target.value)}
+          >
+            {[
+              "All recordings",
+              "Today",
+              "This week",
+              "This month",
+              "Last 7 days",
+              "Last 30 days",
+              "This year",
+              "Custom",
+            ].map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+
+          {exportRange === "Custom" && (
+            <div className="exportDateGrid">
+              <div>
+                <label className="fieldLabel" htmlFor="export-start">
+                  From
+                </label>
+                <input
+                  id="export-start"
+                  className="textInput"
+                  type="date"
+                  value={customStart}
+                  onChange={(event) => setCustomStart(event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="fieldLabel" htmlFor="export-end">
+                  To
+                </label>
+                <input
+                  id="export-end"
+                  className="textInput"
+                  type="date"
+                  value={customEnd}
+                  onChange={(event) => setCustomEnd(event.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          {customRangeInvalid && (
+            <div className="exportValidation" role="status">
+              Choose a valid start and end date.
+            </div>
+          )}
+        </div>
+        <button
+          className="btnPrimary exportButton"
+          type="button"
+          disabled={customRangeInvalid}
+          onClick={exportPdf}
+        >
+          <Download size={16} />
+          Export to PDF
+        </button>
+      </section>
 
       {sortedReadings.length === 0 ? (
         <Card style={{ marginTop: 18 }}>
