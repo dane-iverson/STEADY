@@ -462,7 +462,80 @@ body {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
+@media (min-width: 521px) and (max-width: 900px) {
+  .appOuter { min-height: 100svh; padding: 24px; }
+  .phone { width: min(720px, 100%); height: min(900px, calc(100svh - 48px)); max-height: none; }
+  .screen { width: min(100%, 680px); margin: 0 auto; padding: 28px 30px 34px; }
+  .dashboardScreen { width: 100%; }
+  .tileGrid { gap: 13px; }
+  .tile { min-height: 142px; padding: 17px; }
+  .readingOptionGrid { grid-template-columns: repeat(3, 1fr); }
+  .readingOptionGrid > div:last-child { grid-column: auto; }
+  .modalPanel { width: min(520px, 100%); }
+}
+
+@media (min-width: 901px) {
+  .appOuter { min-height: 100svh; padding: 32px; }
+  .phone { width: min(1120px, calc(100vw - 64px)); height: min(920px, calc(100svh - 64px)); max-height: none; border-radius: 30px; }
+  .topbar { padding: 18px 30px 14px; }
+  .phoneBody { align-items: stretch; }
+  .screen { width: min(100%, 920px); margin: 0 auto; padding: 34px 46px 42px; }
+  .dashboardScreen { width: 100%; max-width: 1040px; }
+  .dashboardIntro { margin-bottom: 18px; }
+  .dashboardIntro .screenTitle { font-size: 30px; }
+  .careToolGrid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .careToolGrid .tile { min-height: 156px; padding: 18px; }
+  .tileGrid.twoCol { grid-template-columns: repeat(3, 1fr); }
+  .readingOptionGrid { grid-template-columns: repeat(3, 1fr); }
+  .readingOptionGrid > div:last-child { grid-column: auto; }
+  .profileInfoGrid { grid-template-columns: repeat(4, 1fr); }
+  .exportDateGrid { grid-template-columns: 1fr 1fr; }
+  .modalPanel { width: min(560px, 100%); }
+  .navbar { padding-left: 24px; padding-right: 24px; }
+  .navItem { padding-top: 9px; padding-bottom: 9px; }
+}
+
 @media (max-width: 520px) {
   .appOuter { width: 100%; max-width: 100vw; padding: 0; align-items: stretch; }
   .phone { width: 100%; max-width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+  .screen { padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .topbar { padding-left: 14px; padding-right: 14px; }
+  .tileGrid { gap: 8px; }
+  .tile { padding: 13px; min-height: 132px; }
+  .tileLabel { font-size: 12.5px; }
+  .tileDesc { font-size: 10.5px; }
+  .readingOptionGrid { grid-template-columns: 1fr; }
+  .readingOptionGrid > div:last-child { grid-column: auto; }
+  .exportDateGrid { grid-template-columns: 1fr; }
+  .formGrid { grid-template-columns: 1fr; }
+  .modalBackdrop { padding: 10px; }
+  .modalPanel { max-height: calc(100svh - 20px); }
+  .navItem { padding-top: 6px; padding-bottom: 6px; }
+}
+
+@media (max-width: 360px) {
+  .screen { padding-left: 12px; padding-right: 12px; }
+  .topbar { padding-left: 10px; padding-right: 10px; }
+  .topbarRow h1 { font-size: 15px; }
+  .careToolGrid { grid-template-columns: 1fr; }
+  .careToolGrid .tile { min-height: 112px; }
+  .dashboardIntro { flex-direction: column; }
+  .careBadge { margin-top: 0; }
+  .navItem span { font-size: 9px; }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .appOuter { padding: 0; align-items: stretch; }
+  .phone { width: 100%; max-width: none; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+  .topbar { padding-top: 9px; padding-bottom: 7px; }
+  .statusPill { margin-top: 4px; padding-top: 3px; padding-bottom: 3px; }
+  .screen { padding-top: 16px; padding-bottom: 18px; }
+  .navbar { padding-top: 4px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 4px); }
+}
+
+/* Touch-first handhelds use the full viewport, including larger iPads. */
+@media (hover: none) and (pointer: coarse) {
+  .appOuter { width: 100%; max-width: 100vw; min-height: 100dvh; padding: 0; align-items: stretch; }
+  .phone { width: 100%; max-width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
+  .topbar { padding-left: calc(14px + env(safe-area-inset-left, 0px)); padding-right: calc(14px + env(safe-area-inset-right, 0px)); }
 }
