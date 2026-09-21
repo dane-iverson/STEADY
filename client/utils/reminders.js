@@ -80,3 +80,86 @@ export function formatNextOccurrence(dateOrIso) {
   // otherwise show short date
   return `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
 }
+
+function advanceReminderDate(date, repeat) {
+  const next = new Date(date);
+  const stepMap = {
+    Hourly: () => next.setHours(next.getHours() + 1),
+    Daily: () => next.setDate(next.getDate() + 1),
+    Weekly: () => next.setDate(next.getDate() + 7),
+    "Every 2 Weeks": () => next.setDate(next.getDate() + 14),
+    Monthly: () => next.setMonth(next.getMonth() + 1),
+    "Every 3 Months": () => next.setMonth(next.getMonth() + 3),
+    "Every 6 Months": () => next.setMonth(next.getMonth() + 6),
+    Yearly: () => next.setFullYear(next.getFullYear() + 1),
+  };
+  const step = stepMap[repeat];
+  if (step) step();
+  return next;
+}
+
+export function getReminderStatus(reminder, now = new Date()) {
+  const baseDate = new Date(reminder?.when);
+  if (!reminder?.when || Number.isNaN(baseDate.getTime())) return null;
+
+  const repeat = reminder.repeat || "Never";
+  const isRecurring = repeat !== "Never" && repeat !== "Custom";
+  let occurrence = baseDate;
+  let nextOccurrence = null;
+
+  if (isRecurring) {
+    let guard = 0;
+    while (occurrence <= now && guard++ < 10000) {
+      nextOccurrence = advanceReminderDate(occurrence, repeat);
+      if (nextOccurrence <= now) {
+        occurrence = nextOccurrence;
+      } else {
+        break;
+      }
+    }
+    if (occurrence > now) {
+      nextOccurrence = occurrence;
+      occurrence = null;
+    }
+  }
+
+  const occurrenceKey =
+    occurrence?.toISOString() || nextOccurrence?.toISOString();
+  const completion = (reminder.completionHistory || []).find(
+    (entry) => entry.occurrenceAt === occurrenceKey,
+  );
+
+  if (completion) {
+    const completedAt = new Date(completion.completedAt);
+    return {
+      key: "completed",
+      label:
+        completedAt <= new Date(occurrenceKey)
+          ? "Completed on time"
+          : "Completed late",
+      occurrenceAt: occurrenceKey,
+      nextOccurrence: isRecurring
+        ? advanceReminderDate(new Date(occurrenceKey), repeat)
+        : null,
+      completion,
+    };
+  }
+
+  if (occurrence && occurrence <= now) {
+    return {
+      key: "overdue",
+      label: "Needs checking",
+      occurrenceAt: occurrence.toISOString(),
+      nextOccurrence,
+      completion: null,
+    };
+  }
+
+  return {
+    key: "upcoming",
+    label: "Upcoming",
+    occurrenceAt: occurrenceKey,
+    nextOccurrence,
+    completion: null,
+  };
+}

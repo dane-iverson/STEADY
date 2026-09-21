@@ -78,7 +78,7 @@ export const EDUCATION = [
   },
   {
     id: "hyper",
-    title: "Hyperglycaemia (high)",
+    title: "Hyperglycaemia (high) & DKA",
     icon: "Sunset",
     body: "A high happens when blood glucose rises above your target range. It can develop from missed insulin, illness, stress or extra food. Persistent highs need attention — see the Emergency tab for guidance on what to do and when to get help.",
   },

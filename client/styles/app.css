@@ -246,6 +246,25 @@ body {
 .profileEditActions { display: flex; gap: 8px; margin-top: 16px; }
 .profileEditActions .btnGhost, .profileEditActions .btnPrimary { flex: 1; margin-top: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .bigInput { font-size: 28px; font-weight: 600; text-align: center; padding: 18px; }
+.recordHeader { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.recordHeader .linkBack { margin-bottom: 0; }
+.recordHistoryLink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; color: var(--brand-dark); padding: 5px 0; font: 600 12px/1 inherit; cursor: pointer; }
+.recordHistoryLink:hover { color: var(--brand); }
+.recordHistoryLink:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 4px; }
+.recordValueBlock { margin-top: 4px; }
+.fieldUnit { color: var(--brand); font-size: 10px; letter-spacing: .2px; }
+.inputHint { color: var(--ink-soft); font-size: 11.5px; margin-top: 7px; text-align: center; }
+.recordContextLabel { margin-top: 24px; margin-bottom: 8px; }
+.recordContextOptions { margin-bottom: 0; }
+.recordStatusPreview { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); color: var(--ink-soft); font-size: 11.5px; }
+.recordDetails { margin-top: 16px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.recordDetails summary { display: flex; align-items: center; gap: 7px; color: var(--brand-dark); cursor: pointer; font-size: 12.5px; font-weight: 600; list-style: none; padding: 13px 2px; }
+.recordDetails summary::-webkit-details-marker { display: none; }
+.recordDetails summary::after { content: "+"; margin-left: auto; color: var(--brand); font-size: 18px; font-weight: 400; }
+.recordDetails[open] summary::after { content: "-"; }
+.recordDateGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 0 14px; }
+.recordDateGrid .fieldLabel { margin-top: 0; }
+.recordSaveButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 
 .ageList { display: flex; flex-direction: column; gap: 10px; }
 .ageOption {
@@ -469,6 +488,47 @@ body {
 .formGrid { align-items: start; }
 .savedTick { box-shadow: 0 10px 20px -16px var(--shadow-color); }
 .appOuter ::selection { background: var(--brand-tint); color: var(--brand-dark); }
+.reminderPageHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.reminderPageHeader .screenSub { max-width: 235px; }
+.reminderCountBadge { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; min-height: 58px; border-radius: 50%; background: var(--brand-tint); color: var(--brand-dark); flex-shrink: 0; }
+.reminderCountBadge strong { font: 800 20px/1 'Manrope', sans-serif; }
+.reminderCountBadge span { margin-top: 3px; font-size: 9px; font-weight: 700; }
+.reminderSummary { display: flex; align-items: center; gap: 15px; margin: 4px 0 17px; padding: 11px 13px; border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(145deg, var(--surface), var(--surface-muted)); }
+.reminderSummary > div { display: flex; flex-direction: column; min-width: 42px; }
+.reminderSummary strong { color: var(--brand-dark); font: 800 17px/1 'Manrope', sans-serif; }
+.reminderSummary span { color: var(--ink-soft); font-size: 10px; margin-top: 4px; }
+.reminderSummary p { display: flex; align-items: center; gap: 6px; margin: 0 0 0 auto; color: var(--ink-soft); font-size: 10.5px; line-height: 1.35; }
+.reminderSummary p svg { color: var(--brand); flex-shrink: 0; }
+.reminderListHeading { margin-top: 0; }
+.reminderListHeading h3 { margin: 3px 0 0; font: 700 15px/1.2 'Manrope', sans-serif; }
+.reminderCardTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.reminderCardTitleRow { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
+.reminderState { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.reminderState-upcoming { color: var(--brand-dark); background: var(--brand-tint); }
+.reminderState-overdue { color: #a6531c; background: #f7e9e0; }
+.reminderState-completed { color: var(--target); background: #e3f2ec; }
+.reminderMeta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; color: var(--ink-soft); font-size: 11.5px; }
+.reminderCompletionPreview { display: flex; align-items: flex-start; gap: 6px; margin-top: 11px; padding: 8px 10px; border-radius: 9px; background: var(--surface-muted); color: var(--brand-dark); font-size: 11px; line-height: 1.4; }
+.reminderCompletionPreview svg { flex-shrink: 0; color: var(--target); margin-top: 1px; }
+.reminderCardActions { display: flex; align-items: center; gap: 10px; margin-top: 13px; }
+.reminderDoneButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: auto; margin-top: 0; padding: 10px 13px; font-size: 12px; }
+.reminderHistoryButton { border: 0; background: none; color: var(--brand-dark); padding: 7px 0; font: 600 11px/1.2 inherit; cursor: pointer; }
+.reminderHistoryButton:hover { color: var(--brand); }
+.reminderCompletionForm { margin-top: 13px; padding-top: 13px; border-top: 1px solid var(--border); }
+.reminderFormTitle { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; color: var(--brand-dark); font: 700 13px/1.2 'Manrope', sans-serif; }
+.reminderFormTitle svg { color: var(--brand); }
+.reminderCompletionForm .fieldLabel { margin-top: 11px; }
+.reminderNotesInput { resize: vertical; min-height: 62px; }
+.fieldOptional { color: var(--ink-soft); font-size: 9px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.reminderFormActions { display: flex; gap: 8px; margin-top: 14px; }
+.reminderFormActions .btnPrimary, .reminderFormActions .btnGhost { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 0; padding: 11px 12px; font-size: 12.5px; }
+.reminderHistoryList { display: grid; gap: 7px; margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--border); }
+.reminderHistoryItem { padding: 8px 10px; border-left: 3px solid var(--brand-tint); background: var(--surface-muted); font-size: 11px; }
+.reminderHistoryItem > div { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; }
+.reminderHistoryItem strong { color: var(--ink); font-weight: 600; }
+.reminderHistoryItem span { color: var(--ink-soft); font-size: 10px; white-space: nowrap; }
+.reminderHistoryItem p { margin: 5px 0 0; color: var(--ink-soft); line-height: 1.4; }
+.reminderFieldSpacing { margin-top: 12px; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
