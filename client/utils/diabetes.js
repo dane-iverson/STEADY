@@ -307,3 +307,91 @@ export function exportReadingsToPdf({
   });
   return true;
 }
+
+function trendChartSvg(points, title) {
+  const width = 760;
+  const height = 250;
+  const left = 42;
+  const right = 18;
+  const top = 22;
+  const bottom = 46;
+  const chartWidth = width - left - right;
+  const chartHeight = height - top - bottom;
+  const xStep =
+    points.length > 1 ? chartWidth / (points.length - 1) : chartWidth;
+  const y = (value) =>
+    top + chartHeight - (Math.min(18, Math.max(0, value)) / 18) * chartHeight;
+  const pointCoordinates = points.map((point, index) => [
+    left + (points.length > 1 ? index * xStep : chartWidth / 2),
+    y(point.v),
+  ]);
+  const path = pointCoordinates
+    .map(
+      ([x, pointY], index) =>
+        `${index ? "L" : "M"}${x.toFixed(1)},${pointY.toFixed(1)}`,
+    )
+    .join(" ");
+  const labels = points
+    .map((point, index) => {
+      const [x] = pointCoordinates[index];
+      return `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.t)}</text>`;
+    })
+    .join("");
+  const dots = pointCoordinates
+    .map(
+      ([x, pointY], index) =>
+        `<circle cx="${x.toFixed(1)}" cy="${pointY.toFixed(1)}" r="4" fill="#176b5b"><title>${escapeHtml(points[index].t)}: ${Number(points[index].v).toFixed(1)} mmol/L</title></circle>`,
+    )
+    .join("");
+
+  return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend"><rect x="${left}" y="${y(7.8)}" width="${chartWidth}" height="${y(4) - y(7.8)}" fill="#e3f2ec"/><line x1="${left}" y1="${y(4)}" x2="${width - right}" y2="${y(4)}" stroke="#d7e3df"/><line x1="${left}" y1="${y(7.8)}" x2="${width - right}" y2="${y(7.8)}" stroke="#d7e3df"/><path d="${path}" fill="none" stroke="#176b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}<text x="10" y="${y(18) + 4}">18</text><text x="20" y="${y(0) + 4}">0</text></svg></div>`;
+}
+
+export function exportTrendsToPdf({
+  readings = [],
+  profile = {},
+  dailyPoints = [],
+  weeklyPoints = [],
+  exportMode = "both",
+  rangeLabel = "Selected period",
+}) {
+  const printWindow = window.open("", "_blank", "width=900,height=700");
+  if (!printWindow) return false;
+
+  const selectedCharts = [];
+  if (exportMode === "daily" || exportMode === "both") {
+    selectedCharts.push(trendChartSvg(dailyPoints, "Daily readings"));
+  }
+  if (exportMode === "weekly" || exportMode === "both") {
+    selectedCharts.push(trendChartSvg(weeklyPoints, "Weekly averages"));
+  }
+  const sortedReadings = [...readings].sort(
+    (first, second) => new Date(second.date) - new Date(first.date),
+  );
+  const readingRows = sortedReadings.length
+    ? sortedReadings
+        .map((reading) => {
+          const status = statusOf(reading.v, reading.context || "Random");
+          return `<tr><td>${escapeHtml(reading.time || formatReadingStamp(reading.date))}</td><td>${Number(reading.v).toFixed(1)} mmol/L</td><td>${escapeHtml(reading.context || "Random")}</td><td>${escapeHtml(status.label)}</td></tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="4" class="empty">No readings in this period.</td></tr>';
+  const generatedAt = formatReadingStamp(new Date());
+  const displayValue = (value) => escapeHtml(value || "Not provided");
+
+  printWindow.document
+    .write(`<!doctype html><html><head><title>Steady trends report</title><style>
+    @page { size: A4; margin: 14mm; } :root { color-scheme: light; font-family: Arial, sans-serif; color: #1e2a22; } body { margin: 0; font-size: 11px; line-height: 1.45; } header { display: flex; justify-content: space-between; border-bottom: 3px solid #176b5b; padding-bottom: 14px; margin-bottom: 16px; } h1 { color: #176b5b; font-size: 25px; margin: 0 0 3px; } h2 { color: #0e4c42; font-size: 15px; margin: 20px 0 8px; } h3 { color: #0e4c42; font-size: 13px; margin: 0 0 5px; } p { margin: 0; color: #5b675e; } .generated { text-align: right; color: #5b675e; font-size: 10px; } .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 18px; background: #eef4f2; padding: 12px; } .detail label { display: block; color: #5b675e; font-size: 9px; text-transform: uppercase; letter-spacing: .6px; } .detail strong { font-size: 11px; } .chartBlock { margin: 12px 0 18px; border: 1px solid #d7e3df; padding: 10px; page-break-inside: avoid; } svg { display: block; width: 100%; height: auto; } svg text { fill: #5b675e; font-size: 10px; } table { width: 100%; border-collapse: collapse; } th { background: #dcefea; color: #0e4c42; text-align: left; font-size: 10px; } th, td { padding: 7px; border-bottom: 1px solid #d7e3df; } .empty { text-align: center; color: #5b675e; } footer { margin-top: 20px; padding-top: 9px; border-top: 1px solid #d7e3df; color: #5b675e; font-size: 9px; }
+  </style></head><body><header><div><h1>Steady</h1><p>Glucose trends report</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header><h2>Report period</h2><p>${escapeHtml(rangeLabel)}</p><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Readings</label><strong>${readings.length}</strong></div></div><h2>Glucose trends</h2>${selectedCharts.join("")}<h2>Readings used (${readings.length})</h2><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table><footer>This report helps you discuss patterns with your healthcare team and does not replace medical advice.</footer></body></html>`);
+  let hasPrinted = false;
+  const printReport = () => {
+    if (hasPrinted) return;
+    hasPrinted = true;
+    printWindow.focus();
+    printWindow.print();
+  };
+  printWindow.addEventListener("load", printReport, { once: true });
+  printWindow.document.close();
+  window.setTimeout(printReport, 250);
+  return true;
+}

@@ -349,6 +349,7 @@ export default function App() {
           {screen === "trends" && (
             <TrendsPage
               readings={readings}
+              profile={profile}
               onBack={() => setScreen("dashboard")}
             />
           )}
