@@ -311,7 +311,7 @@ export function exportReadingsToPdf({
 function trendChartSvg(points, title) {
   const width = 760;
   const height = 250;
-  const left = 42;
+  const left = 54;
   const right = 18;
   const top = 22;
   const bottom = 46;
@@ -321,6 +321,7 @@ function trendChartSvg(points, title) {
     points.length > 1 ? chartWidth / (points.length - 1) : chartWidth;
   const y = (value) =>
     top + chartHeight - (Math.min(18, Math.max(0, value)) / 18) * chartHeight;
+  const yTicks = [0, 3, 4, 7.8, 14, 18];
   const pointCoordinates = points.map((point, index) => [
     left + (points.length > 1 ? index * xStep : chartWidth / 2),
     y(point.v),
@@ -331,8 +332,16 @@ function trendChartSvg(points, title) {
         `${index ? "L" : "M"}${x.toFixed(1)},${pointY.toFixed(1)}`,
     )
     .join(" ");
-  const labels = points
-    .map((point, index) => {
+  const labelStep = points.length > 8 ? Math.ceil((points.length - 1) / 7) : 1;
+  const labelIndexes = points.reduce((indexes, point, index) => {
+    if (index === 0 || index === points.length - 1 || index % labelStep === 0) {
+      indexes.push(index);
+    }
+    return indexes;
+  }, []);
+  const labels = labelIndexes
+    .map((index) => {
+      const point = points[index];
       const [x] = pointCoordinates[index];
       return `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.t)}</text>`;
     })
@@ -343,8 +352,18 @@ function trendChartSvg(points, title) {
         `<circle cx="${x.toFixed(1)}" cy="${pointY.toFixed(1)}" r="4" fill="#176b5b"><title>${escapeHtml(points[index].t)}: ${Number(points[index].v).toFixed(1)} mmol/L</title></circle>`,
     )
     .join("");
+  const rangeBands = GLUCOSE_RANGES.map(
+    (band) =>
+      `<rect x="${left}" y="${y(band.max)}" width="${chartWidth}" height="${y(band.min) - y(band.max)}" fill="${band.fill}" fill-opacity=".82"/>`,
+  ).join("");
+  const gridLines = yTicks
+    .map(
+      (tick) =>
+        `<line x1="${left}" y1="${y(tick)}" x2="${width - right}" y2="${y(tick)}" stroke="#d7e3df" stroke-width="1"/><text x="${left - 9}" y="${y(tick) + 3.5}" text-anchor="end">${tick}</text>`,
+    )
+    .join("");
 
-  return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend"><rect x="${left}" y="${y(7.8)}" width="${chartWidth}" height="${y(4) - y(7.8)}" fill="#e3f2ec"/><line x1="${left}" y1="${y(4)}" x2="${width - right}" y2="${y(4)}" stroke="#d7e3df"/><line x1="${left}" y1="${y(7.8)}" x2="${width - right}" y2="${y(7.8)}" stroke="#d7e3df"/><path d="${path}" fill="none" stroke="#176b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}<text x="10" y="${y(18) + 4}">18</text><text x="20" y="${y(0) + 4}">0</text></svg></div>`;
+  return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend">${rangeBands}${gridLines}<path d="${path}" fill="none" stroke="#176b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
 }
 
 export function exportTrendsToPdf({

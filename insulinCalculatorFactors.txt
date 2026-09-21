@@ -1,0 +1,391 @@
+i want to add an insulin dosage calculator to my app.what factors do i need to consider and what details dothey need to inout (e.g. current glucose, insulin dose,insulin sensitivity, carbs, excercise adjustment, sicknessadjustment etc.)
+Yes — but because this is a
+Type 1 diabetes app intended for children, adolescentsand young adults
+, I would treat an insulin calculator as a
+high-risk clinical feature
+,rather than simply adding a mathematical calculator. The calculator needs to use theperson's
+individual insulin prescription/settings
+, with clear safety checks and clinician-directed parameters.
+Current ADA guidance specifically describes mealtime insulin adjustment around
+carbohydrate intake, current glucose, glucose trends, physical activity and sick-daymanagement
+, while ISPAD describes the core use of an insulin-to-carbohydrate ratio(ICR) and insulin sensitivity/correction factor (ISF).
+1. The basic calculator
+For a standard meal bolus, your app could conceptually calculate:
+Meal insulin + correction insulin = suggested bolus
+A. Meal/carbohydrate dose
+The user enters:
+Carbohydrate amount (g)
+Insulin-to-carbohydrate ratio (ICR)
+For example:
+The ICR should be
+user-specific and preferably entered as prescribed by theirdiabetes team
+, rather than the app trying to determine it automatically.
+ISPAD describes ICR as the number of grams of carbohydrate covered by 1 unit ofinsulin.
+B. Correction dose
+Diabetes Journals
++
+1
+60 g carbohydrates ÷ 10 g/unit = 6 units
+ISPADUpgrade
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 1/12
+The user enters:
+Current blood glucose
+Target blood glucose
+Insulin sensitivity factor (ISF)
+/ correction factor
+Conceptually:
+For example, if someone has a glucose of 12 mmol/L, a target of 6 mmol/L and an ISF of3 mmol/L/unit:
+ISPAD gives the same basic correction calculation and notes that ISF can be based onan individual's total daily insulin dose, but for your app I would
+not have the appindependently establish the patient's prescribed ISF
+.
+2. What I would have the user enter
+I'd divide the calculator into
+"Personal settings"
+and
+"Today's calculation."
+PERSONAL SETTINGS — entered once
+These would be saved in the user's profile:
+Setting
+Why it matters
+Insulin type
+Rapid-acting vs other insulin
+Insulin delivery method
+Pen/syringe/pump
+Insulin-to-carb ratio (ICR)
+Calculates meal insulin
+Insulin sensitivity factor (ISF)
+Calculates correction insulin
+Target glucose
+Determines correction
+Maximum single bolus
+Safety limit
+Insulin dose increment
+e.g. 0.5-unit or 1-unit increments
+Basal insulin information
+Important context, although the calculator shouldn'tautomatically change basal insulin
+(Current glucose − Target glucose) ÷ ISF = correction dose
+(12 − 6) ÷ 3 = 2 units
+ISPAD
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 2/12
+Setting
+Why it matters
+Insulin duration/action time
+Important if accounting for insulin-on-board
+Low-glucose threshold
+Allows the app to stop/restrict bolus recommendations
+Ketone-management instructions
+Safety/sick-day pathway
+For children/adolescents, I would make it especially clear that these settings shouldcome from the
+parent/caregiver and/or diabetes healthcare team
+, rather than beingcalculated by the app.
+3. TODAY'S CALCULATION
+I'd make the actual calculator screen very simple.
+Step 1 — Current glucose
+What is your current glucose?
+mmol/L
+Option to enter manually
+Potential future CGM integration
+Also potentially:
+Glucose trend:
+↑ Rising / → Stable / ↓ Falling
+This becomes particularly useful if you eventually integrate CGM data. ADA guidancerecognises glucose trends as relevant to insulin adjustment.
+Step 2 — Carbohydrates
+How many grams of carbohydrate are you eating?
+_____ g
+Then:
+Meal insulin = carbohydrate ÷ ICR
+Diabetes Journals
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 3/12
+Step 3 — Correction
+The app uses:
+Current glucose
+Target glucose
+ISF
+and calculates the correction component.
+If glucose is
+below target
+, the app should
+not simply produce a negative insulin dose
+.It should move into a safety pathway instead.
+4. VERY IMPORTANT: Insulin on board
+I would strongly consider including this.
+If someone took rapid-acting insulin recently, giving another full correction could resultin
+insulin stacking and hypoglycaemia
+.
+So potentially:
+Have you taken rapid-acting insulin recently?
+No
+Yes → When?
+Amount taken: ___ units
+Then:
+Insulin on board (IOB): ___ units
+A more sophisticated bolus calculator can account for active insulin rather than treatingthe person as if they have no previous insulin working.
+This is one of the areas where I'd recommend getting your calculation logic reviewed bya
+diabetes clinician/endocrinologist/pharmacist experienced in T1DM technology
+before implementing it.
+5. Exercise adjustment
+I
+wouldn't make this a simple "exercise = −20%" button.
+Exercise responses vary substantially according to the
+type, intensity, duration andtiming of exercise
+, as well as insulin already active. ADA specifically notes that
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 4/12
+exercise-related insulin adjustments need to be individualised.
+Instead, ask:
+Are you planning to exercise soon?
+No
+Yes
+If yes:
+Exercise type
+Light
+Moderate
+Vigorous/high intensity
+Expected duration
+<30 min
+30–60 min
+When will you exercise?
+Before eating
+Soon after eating
+Later
+Current glucose
+Already captured
+Glucose trend
+↑
+→
+↓
+The app could then provide
+safety guidance based on the user's clinician-definedplan
+, rather than automatically inventing an insulin reduction.
+This is particularly important because aerobic exercise can lower glucose, while high-intensity exercise can sometimes produce a temporary glucose rise.
+6. Illness/sick-day adjustment
+I would definitely include a
+"I'm sick"
+option, but I would be cautious about making theapp automatically calculate extra insulin.
+Diabetes Journals
+60 min
+Diabetes Journals
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 5/12
+Ask:
+Are you currently unwell?
+No
+Yes
+If yes:
+Symptoms
+Fever
+Vomiting
+Diarrhoea
+Unable to eat/drink normally
+Other
+Then:
+Check ketones
+No ketone result
+Blood ketones: ___ mmol/L
+Urine ketones: ___
+And the app should direct the user to an
+appropriate sick-day protocol
+, including whento check glucose/ketones, hydration, insulin guidance and when to seek urgent medicalcare.
+This is particularly important because
+T1DM + illness + insufficient insulin canprogress to diabetic ketoacidosis (DKA)
+.
+ISPAD's sick-day guidance uses glucose and ketone levels to determine differentmanagement pathways, and specifically emphasises additional insulin/correction andreassessment in certain situations.
+I would therefore make this a
+sick-day guidance module
+, rather than just:
+7. Ketones should be a safety check
+I'd actually put this
+before the final dose is displayed
+.
+For example:
+ISPAD
+"Sick = add 10% insulin."
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 6/12
+Safety check
+Current glucose:
+___ mmol/L
+Ketones:
+Not checked
+<0.6 mmol/L
+0.6–1.5 mmol/L
+Depending on the result, the app can direct the user to the appropriate
+clinician-approved sick-day guidance
+.
+ISPAD specifically incorporates ketone levels into exercise/sick-day decision-makingand recommends avoiding exercise in certain hyperglycaemia/ketone situations.
+8. Meals aren't only carbohydrates
+This is something that could make your calculator more sophisticated.
+ADA 2026 notes that insulin dosing may need to account for
+fat and protein as well ascarbohydrates
+, although this is more complex and may be more feasible with insulinpumps than with multiple daily injections.
+For your
+first prototype
+, I would probably
+not automatically calculate a fat/proteinadjustment
+.
+Instead:
+If high-fat/high-protein is selected, the app could provide an educational warning suchas:
+That keeps the prototype safer and much easier to validate.
+9. The final calculation screen
+1.5 mmol/L
+ISPAD
+Diabetes Journals
+Carbohydrate:
+___ g
+Meal type:
+Regular / high-fat / high-protein
+"High-fat or high-protein meals may affect glucose levels for several hours. Followyour usual diabetes-management plan."
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 7/12
+I would structure the result something like this:
+💉 Suggested mealtime dose
+Carbohydrate dose:
+5.0 units
+Correction dose:
+1.5 units
+Insulin already active:
+0.5 units
+Exercise considerations:
+Follow your personalised exercise plan
+Total calculated dose:
+6.0 units
+Then:
+And have a prominent:
+⚠️
+DO NOT ADMINISTER / CHECK GLUCOSE & FOLLOW HYPO GUIDANCE
+type pathway when glucose is low or other safety conditions are triggered.
+10. Things I would NOT let the app decide automatically
+This is probably the most important part for your MPharm project.
+I would
+not
+have the prototype independently determine:
+❌ the user's ICR
+❌ the user's ISF
+❌ their basal insulin dose
+❌ changes to their long-acting insulin
+❌ automatic sick-day percentage increases
+❌ automatic exercise percentage reductions
+❌ correction doses when significant ketones are present without an appropriate safety
+Important:
+This is a calculation based on the insulin settings you entered. Check theresult against your prescribed diabetes-management plan before administeringinsulin.
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 8/12
+pathway
+❌ insulin doses for someone who hasn't established their personalised insulin regimen
+❌ a dose simply from current glucose
+The ADA specifically emphasises that T1DM insulin treatment should incorporateindividual factors including nutritional intake, glycemia, activity and sick-daymanagement.
+11. I'd actually design your calculator in 3 levels
+For
+your particular dissertation prototype
+, I think this would make the feature muchmore defensible:
+🟢 LEVEL 1 — Basic meal calculator
+Inputs:
+Current glucose
+Carbohydrates
+ICR
+Target glucose
+ISF
+Output:
+Meal dose
+Correction dose
+Total calculated dose
+🟠 LEVEL 2 — Safety adjustments
+Additional information:
+Insulin on board
+Glucose trend
+Exercise planned?
+Recent exercise
+Illness
+Ketones
+These don't necessarily automatically change the dose; they can
+trigger appropriatewarnings/guidance
+.
+🔴 LEVEL 3 — Emergency safety
+Diabetes Journals
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 9/12
+The calculator should stop normal dose calculation and provide appropriate guidance ifthere are things such as:
+Hypoglycaemia
+Significant ketones
+Severe hyperglycaemia
+Vomiting/inability to keep fluids down
+Symptoms suggestive of DKA
+Conflicting/insufficient information
+That fits very well with the
+"Emergency Guidance"
+feature you've already planned foryour app.
+A possible input flow for your Bubble prototype
+I'd make it:
+1. Glucose
+2. Meal
+3. Activity
+If yes:
+4. Health
+If yes:
+5. Previous insulin
+Current glucose:
+___ mmol/L
+Carbohydrates:
+___ g
+Exercising soon?
+Yes / No
+Type:
+Light / Moderate / Vigorous
+Duration:
+___ min
+Are you currently sick?
+Yes / No
+Ketones:
+___ mmol/L
+Rapid-acting insulin taken recently?
+Yes / No
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 10/12
+If yes:
+6. Personal settings
+7. CHECK
+Then show:
+followed by the relevant safety message.
+One important change I'd make to your thesis
+Because your current project is a
+prototype usability study rather than a clinical trial
+, Iwould describe this feature as a
+"personalised insulin bolus calculation aid"
+ratherthan claiming that the app "determines the correct insulin dose."
+Your methodology could explain that the calculator uses
+user-entered, clinician-established parameters
+(ICR, ISF and target glucose) to demonstrate the calculationprocess, while safety conditions direct users to predefined educational/emergencyguidance.
+That would also make the feature much easier to justify from a
+user-centred designand patient-safety perspective
+.
+If you're adding this to the actual Bubble prototype, I can also
+map out the
+exactscreens, input fields, buttons, formulas, warning messages and Bubble conditionallogic
+for the calculator
+so you can build it directly.
+Dose:
+___ units
+Time:
+___
+ICR:
+___ g/unit
+ISF:
+___ mmol/L/unit
+Target glucose:
+___ mmol/L
+Calculated meal dose:
+X units
+Correction:
+X units
+Insulin on board:
+X units
+Calculated total:
+X units
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 11/12
+ChatGPT can make mistakes. Check important info.
+21/09/2026, 20:21 Insulin Calculator Factors
+https://chatgpt.com/c/6ab171e2-49e0-83ea-8dc3-2e7b334cba13 12/12

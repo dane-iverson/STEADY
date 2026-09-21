@@ -148,7 +148,7 @@ export function getReminderStatus(reminder, now = new Date()) {
   if (occurrence && occurrence <= now) {
     return {
       key: "overdue",
-      label: "Needs checking",
+      label: "Incomplete",
       occurrenceAt: occurrence.toISOString(),
       nextOccurrence,
       completion: null,

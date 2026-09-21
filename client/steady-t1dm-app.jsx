@@ -13,10 +13,12 @@ import { RemindersPage } from "./pages/RemindersPage";
 import { EducationPage } from "./pages/EducationPage";
 import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { InsulinCalculatorPage } from "./pages/InsulinCalculatorPage";
 import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
 } from "./utils/diabetes.js";
+import { DEFAULT_INSULIN_SETTINGS } from "./utils/insulin.js";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -106,6 +108,9 @@ export default function App() {
   const [reminders, setReminders] = useState(defaultReminders);
   const [profile, setProfile] = useState(defaultProfile);
   const [sharing, setSharing] = useState(defaultSharing);
+  const [insulinSettings, setInsulinSettings] = useState(
+    DEFAULT_INSULIN_SETTINGS,
+  );
 
   useEffect(() => {
     if (!token) return;
@@ -141,6 +146,10 @@ export default function App() {
     setReminders(user.reminders?.length ? user.reminders : defaultReminders);
     setProfile(user.profile || defaultProfile);
     setSharing(user.sharing || defaultSharing);
+    setInsulinSettings({
+      ...DEFAULT_INSULIN_SETTINGS,
+      ...(user.insulinSettings || {}),
+    });
   }
 
   async function persistUserState(nextOverrides = {}) {
@@ -152,6 +161,7 @@ export default function App() {
       reminders,
       profile,
       sharing,
+      insulinSettings,
       ...nextOverrides,
       name: nextOverrides.name ?? nextOverrides.profile?.name ?? name,
     };
@@ -184,6 +194,7 @@ export default function App() {
     setReminders(defaultReminders);
     setProfile(defaultProfile);
     setSharing(defaultSharing);
+    setInsulinSettings(DEFAULT_INSULIN_SETTINGS);
     setOnline(true);
   }
 
@@ -261,6 +272,7 @@ export default function App() {
     "reminders",
     "education",
     "emergency",
+    "insulinCalculator",
   ].includes(screen);
 
   const titles = {
@@ -271,6 +283,7 @@ export default function App() {
     reminders: "Reminders",
     education: "Education Centre",
     emergency: "Emergency",
+    insulinCalculator: "Insulin calculator",
     profile: "Your details",
   };
 
@@ -376,6 +389,19 @@ export default function App() {
             <EmergencyPage
               profile={profile}
               onBack={() => setScreen("dashboard")}
+            />
+          )}
+
+          {screen === "insulinCalculator" && (
+            <InsulinCalculatorPage
+              ageGroup={ageGroup}
+              settings={insulinSettings}
+              setSettings={(nextSettings) => {
+                setInsulinSettings(nextSettings);
+                persistUserState({ insulinSettings: nextSettings });
+              }}
+              onBack={() => setScreen("dashboard")}
+              onEmergency={() => setScreen("emergency")}
             />
           )}
 

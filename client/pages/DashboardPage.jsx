@@ -2,6 +2,7 @@ import React from "react";
 import {
   Bell,
   BookOpen,
+  Calculator,
   Droplet,
   ShieldAlert,
   TrendingUp,
@@ -70,6 +71,12 @@ export function DashboardPage({
       label: "Trends",
       icon: TrendingUp,
       desc: "See your patterns",
+    },
+    {
+      id: "insulinCalculator",
+      label: "Insulin calculator",
+      icon: Calculator,
+      desc: "Check a meal dose safely",
     },
     {
       id: "reminders",

@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
     ageGroup: { type: String, default: "teen" },
     readings: { type: Array, default: [] },
     reminders: { type: Array, default: [] },
+    insulinSettings: { type: Object, default: {} },
     profile: {
       name: { type: String, default: "" },
       surname: { type: String, default: "" },

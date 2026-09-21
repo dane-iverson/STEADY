@@ -35,6 +35,7 @@ function sanitizeUser(user) {
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
+    insulinSettings: user.insulinSettings || {},
     profile: user.profile || {
       name: "",
       surname: "",
@@ -109,6 +110,7 @@ router.put("/me", async (req, res) => {
       ageGroup: derivedAgeGroup || updates.ageGroup || "teen",
       readings: Array.isArray(updates.readings) ? updates.readings : [],
       reminders: Array.isArray(updates.reminders) ? updates.reminders : [],
+      insulinSettings: updates.insulinSettings || {},
       profile: updates.profile || {
         name: "",
         surname: "",

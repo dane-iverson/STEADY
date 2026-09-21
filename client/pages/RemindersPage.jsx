@@ -170,7 +170,7 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
         <div>
           <h2 className="screenTitle">Reminders</h2>
           <p className="screenSub">
-            Keep track of what needs doing and what you have completed.
+            Keep track of what needs to be done and what has been completed.
           </p>
         </div>
         <div className="reminderCountBadge">
