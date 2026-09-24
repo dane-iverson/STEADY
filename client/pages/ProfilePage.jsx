@@ -216,11 +216,21 @@ export function ProfilePage({
                 <label className="fieldLabel" style={{ marginTop: 12 }}>
                   Gender
                 </label>
-                <input
+                <select
                   className="textInput"
-                  value={draftProfile.gender || ""}
+                  value={
+                    draftProfile.gender === "Male" ||
+                    draftProfile.gender === "Female"
+                      ? draftProfile.gender
+                      : ""
+                  }
                   onChange={(e) => updateDraft("gender", e.target.value)}
-                />
+                  required
+                >
+                  <option value="">Select an option</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
                 <label className="fieldLabel" style={{ marginTop: 12 }}>
                   Other medication
                 </label>

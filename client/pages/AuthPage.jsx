@@ -7,6 +7,8 @@ const API_BASE =
 
 export function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState("login");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -41,8 +43,18 @@ export function AuthPage({ onAuthSuccess }) {
         setError("Please add a valid date of birth.");
         return;
       }
+      if (!form.gender) {
+        setError("Please select male or female.");
+        return;
+      }
       if (form.password !== form.confirmPassword) {
         setError("Passwords do not match.");
+        return;
+      }
+      if (!termsAccepted) {
+        setError(
+          "Please agree to the Terms and Conditions to create an account.",
+        );
         return;
       }
     }
@@ -177,11 +189,16 @@ export function AuthPage({ onAuthSuccess }) {
             <label className="fieldLabel" style={{ marginTop: 12 }}>
               Gender
             </label>
-            <input
+            <select
               className="textInput"
               value={form.gender}
               onChange={(e) => updateField("gender", e.target.value)}
-            />
+              required
+            >
+              <option value="">Select an option</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
 
             <label className="fieldLabel" style={{ marginTop: 12 }}>
               Other medication
@@ -245,6 +262,33 @@ export function AuthPage({ onAuthSuccess }) {
           </>
         )}
 
+        {mode === "signup" && (
+          <label className="termsAgreement" htmlFor="terms-agreement">
+            <input
+              id="terms-agreement"
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(event) => {
+                setTermsAccepted(event.target.checked);
+                if (error) setError("");
+              }}
+            />
+            <span>
+              I agree to the{" "}
+              <button
+                type="button"
+                className="termsLink"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setTermsOpen(true);
+                }}
+              >
+                Terms and Conditions
+              </button>
+            </span>
+          </label>
+        )}
+
         {error && (
           <div className="toast" style={{ marginTop: 12 }}>
             {error}
@@ -264,6 +308,67 @@ export function AuthPage({ onAuthSuccess }) {
               : "Create account"}
         </button>
       </form>
+
+      {termsOpen && (
+        <div
+          className="modalBackdrop"
+          role="presentation"
+          onClick={() => setTermsOpen(false)}
+        >
+          <section
+            className="modalPanel termsModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="terms-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="exportPanelHeader">
+              <div>
+                <div className="sectionKicker">PROTOTYPE NOTICE</div>
+                <h3 id="terms-title">Terms and Conditions</h3>
+              </div>
+              <button
+                className="iconBtn"
+                type="button"
+                aria-label="Close Terms and Conditions"
+                onClick={() => setTermsOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <p className="termsText">
+              This application is a research prototype developed for the purpose
+              of evaluating the usability and functionality of a technology
+              solution designed to support Type 1 Diabetes management. The
+              features, information and functionality presented within this
+              prototype are intended for research and demonstration purposes
+              only and should not be considered a substitute for professional
+              medical advice, diagnosis or treatment.
+            </p>
+            <p className="termsText">
+              This prototype is not intended for use in the clinical management
+              of diabetes or for making medical decisions. For the purpose of
+              this research prototype, a simplified version of the Terms and
+              Conditions is provided.
+            </p>
+            <p className="termsText">
+              A comprehensive set of Terms and Conditions, including detailed
+              information regarding use of the application, privacy, data
+              protection, user responsibilities, medical disclaimers and other
+              applicable legal requirements, would be developed and made
+              available should the technology solution be developed into a full
+              application for public use.
+            </p>
+            <button
+              className="btnPrimary termsCloseButton"
+              type="button"
+              onClick={() => setTermsOpen(false)}
+            >
+              Close
+            </button>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
