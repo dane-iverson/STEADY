@@ -343,7 +343,11 @@ export function GlucoseHistoryPage({
       ) : (
         <div className="listCol" style={{ marginTop: 18 }}>
           {sortedReadings.map((reading) => {
-            const status = statusOf(reading.v, reading.context || "Random");
+            const status = statusOf(
+              reading.v,
+              reading.context || "Random",
+              profile?.glucoseRanges,
+            );
             return (
               <div
                 key={reading.id}

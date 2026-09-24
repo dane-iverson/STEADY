@@ -5,6 +5,7 @@ import { normalizeDecimalInput, statusOf } from "../utils/diabetes.js";
 
 export function GlucoseRecordingPage({
   ageGroup,
+  profile,
   editingReading,
   onSave,
   onUpdate,
@@ -41,7 +42,7 @@ export function GlucoseRecordingPage({
 
   const num = Number(value);
   const valid = value !== "" && Number.isFinite(num) && num >= 0 && num <= 30;
-  const status = valid ? statusOf(num, context) : null;
+  const status = valid ? statusOf(num, context, profile?.glucoseRanges) : null;
 
   function resetEntryForm() {
     setValue("");

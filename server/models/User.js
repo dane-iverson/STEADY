@@ -27,6 +27,14 @@ const userSchema = new mongoose.Schema(
       status: { type: String, default: "Type 1 diabetes" },
       contactName: { type: String, default: "" },
       contactNumber: { type: String, default: "" },
+      hba1c: { type: String, default: "" },
+      hba1cDate: { type: String, default: "" },
+      glucoseRanges: {
+        veryLowMax: { type: Number, default: 3 },
+        lowMax: { type: Number, default: 4 },
+        targetMax: { type: Number, default: 7.8 },
+        highMax: { type: Number, default: 14 },
+      },
     },
     sharing: {
       on: { type: Boolean, default: false },

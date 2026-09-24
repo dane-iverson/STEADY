@@ -48,6 +48,9 @@ function sanitizeUser(user) {
       status: "Type 1 diabetes",
       contactName: "",
       contactNumber: "",
+      hba1c: "",
+      hba1cDate: "",
+      glucoseRanges: { veryLowMax: 3, lowMax: 4, targetMax: 7.8, highMax: 14 },
     },
     sharing: user.sharing || {
       on: false,
@@ -123,6 +126,14 @@ router.put("/me", async (req, res) => {
         status: "Type 1 diabetes",
         contactName: "",
         contactNumber: "",
+        hba1c: "",
+        hba1cDate: "",
+        glucoseRanges: {
+          veryLowMax: 3,
+          lowMax: 4,
+          targetMax: 7.8,
+          highMax: 14,
+        },
       },
       sharing: updates.sharing || {
         on: false,

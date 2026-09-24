@@ -14,7 +14,7 @@ import { Card } from "../components/Card";
 import {
   exportTrendsToPdf,
   getReadingDateRange,
-  GLUCOSE_RANGES,
+  glucoseRangesFromLimits,
   readingsForDateRange,
   statusOf,
 } from "../utils/diabetes";
@@ -47,6 +47,17 @@ const DISPLAY_RANGES = [
 function formatRangeLabel(range, start, end) {
   if (range !== "Custom") return range;
   return `${start || "Start"} to ${end || "End"}`;
+}
+
+function formatGlucoseRangeDescriptions(ranges) {
+  const format = (value) => Number(value).toFixed(1);
+  return [
+    `0–${format(ranges[0].max - 0.1)} mmol/L`,
+    `${format(ranges[1].min)}–${format(ranges[1].max - 0.1)} mmol/L`,
+    `${format(ranges[2].min)}–${format(ranges[2].max)} mmol/L`,
+    `${format(ranges[3].min + 0.1)}–${format(ranges[3].max - 0.1)} mmol/L`,
+    `${format(ranges[4].min)}+ mmol/L`,
+  ];
 }
 
 function buildTrendPoints(filteredReadings, mode) {
@@ -141,6 +152,17 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
     [filteredReadings],
   );
   const chartData = view === "daily" ? dailyPoints : weeklyPoints;
+  const glucoseRanges = glucoseRangesFromLimits(profile?.glucoseRanges);
+  const glucoseRangeDescriptions =
+    formatGlucoseRangeDescriptions(glucoseRanges);
+  const chartMax = Math.max(18, glucoseRanges[3].max + 4);
+  const chartTicks = [
+    0,
+    ...glucoseRanges
+      .map((band) => band.max)
+      .filter((value) => value < chartMax),
+    chartMax,
+  ].filter((value, index, values) => values.indexOf(value) === index);
   const validValues = filteredReadings
     .map((reading) => Number(reading.v))
     .filter(Number.isFinite);
@@ -149,7 +171,8 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
     : null;
   const inRangeCount = filteredReadings.filter(
     (reading) =>
-      statusOf(reading.v, reading.context || "Random").key === "target",
+      statusOf(reading.v, reading.context || "Random", profile?.glucoseRanges)
+        .key === "target",
   ).length;
   const inRangePercent = validValues.length
     ? Math.round((inRangeCount / validValues.length) * 100)
@@ -164,6 +187,7 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
       dailyPoints: exportDailyPoints,
       weeklyPoints: exportWeeklyPoints,
       exportMode,
+      glucoseRanges: profile?.glucoseRanges,
       rangeLabel: formatRangeLabel(
         exportRange,
         exportCustomStart,
@@ -298,7 +322,7 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
             margin={{ top: 8, right: 8, left: 4, bottom: 0 }}
           >
             <CartesianGrid stroke="#E8E4D8" vertical={false} />
-            {GLUCOSE_RANGES.map((band) => (
+            {glucoseRanges.map((band) => (
               <ReferenceArea
                 key={band.key}
                 y1={band.min}
@@ -315,8 +339,8 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
               tickLine={false}
             />
             <YAxis
-              domain={[0, 18]}
-              ticks={[0, 3, 4, 7.8, 14, 18]}
+              domain={[0, chartMax]}
+              ticks={chartTicks}
               tick={{ fontSize: 11, fill: "#5B675E" }}
               axisLine={false}
               tickLine={false}
@@ -473,23 +497,23 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
       <div className="tileGrid twoCol">
         <div className="miniStat">
           <span className={"statusTag statusTag-very-low"}>▼ Very low</span>
-          <span className="miniStatDesc">0–2.9 mmol/L</span>
+          <span className="miniStatDesc">{glucoseRangeDescriptions[0]}</span>
         </div>
         <div className="miniStat">
           <span className={"statusTag statusTag-low"}>▼ Low</span>
-          <span className="miniStatDesc">3.0–3.9 mmol/L</span>
+          <span className="miniStatDesc">{glucoseRangeDescriptions[1]}</span>
         </div>
         <div className="miniStat">
           <span className={"statusTag statusTag-target"}>● In range</span>
-          <span className="miniStatDesc">4.0–7.8 mmol/L</span>
+          <span className="miniStatDesc">{glucoseRangeDescriptions[2]}</span>
         </div>
         <div className="miniStat">
           <span className={"statusTag statusTag-high"}>▲ High</span>
-          <span className="miniStatDesc">7.9–13.9 mmol/L</span>
+          <span className="miniStatDesc">{glucoseRangeDescriptions[3]}</span>
         </div>
         <div className="miniStat">
           <span className={"statusTag statusTag-very-high"}>▲ Very high</span>
-          <span className="miniStatDesc">14.0+ mmol/L</span>
+          <span className="miniStatDesc">{glucoseRangeDescriptions[4]}</span>
         </div>
       </div>
       <p className="fineprint">

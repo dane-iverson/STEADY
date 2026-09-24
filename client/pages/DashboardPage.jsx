@@ -12,7 +12,7 @@ import { AGE_GROUPS, COPY } from "../data/appData";
 import {
   getTimeOfDayGreeting,
   glucoseRangePosition,
-  GLUCOSE_RANGES,
+  glucoseRangesFromLimits,
   statusOf,
 } from "../utils/diabetes";
 import { Card } from "../components/Card";
@@ -27,11 +27,16 @@ export function DashboardPage({
   name,
   readings,
   reminders,
+  profile,
   setScreen,
 }) {
   const c = COPY[AGE_GROUPS[ageGroup].tone];
   const last = readings[readings.length - 1];
-  const lastStatus = last ? statusOf(last.v, last.context || "Random") : null;
+  const glucoseRanges = glucoseRangesFromLimits(profile?.glucoseRanges);
+  const rangeMax = glucoseRanges[3].max;
+  const lastStatus = last
+    ? statusOf(last.v, last.context || "Random", profile?.glucoseRanges)
+    : null;
   const activeReminders = reminders.filter((r) => r.on).length;
   const now = new Date();
   // find next upcoming active reminder
@@ -153,7 +158,7 @@ export function DashboardPage({
             className="rangeTrack"
             aria-label={`Last reading ${Number(last.v).toFixed(1)} mmol/L`}
           >
-            {GLUCOSE_RANGES.map((band) => (
+            {glucoseRanges.map((band) => (
               <span
                 key={band.key}
                 className="rangeTrackSegment"
@@ -165,12 +170,12 @@ export function DashboardPage({
             ))}
             <span
               className="rangeTrackMarker"
-              style={{ left: `${glucoseRangePosition(last.v)}%` }}
+              style={{ left: `${glucoseRangePosition(last.v, rangeMax)}%` }}
               title={`${Number(last.v).toFixed(1)} mmol/L`}
             />
           </div>
           <div className="rangeScale">
-            {GLUCOSE_RANGES.map((band) => (
+            {glucoseRanges.map((band) => (
               <span key={band.key} style={{ flex: band.max - band.min }}>
                 {band.label}
               </span>

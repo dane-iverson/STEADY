@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
+import { DEFAULT_GLUCOSE_RANGE_LIMITS } from "../utils/diabetes";
 
 export function ProfilePage({
   ageGroup,
@@ -22,10 +23,27 @@ export function ProfilePage({
 }) {
   const [tab, setTab] = useState("profile");
   const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
+  const [editingGlucoseRanges, setEditingGlucoseRanges] = useState(false);
+  const [editingHba1c, setEditingHba1c] = useState(false);
   const [draftProfile, setDraftProfile] = useState(profile);
+  const [draftGlucoseRanges, setDraftGlucoseRanges] = useState(
+    profile.glucoseRanges || DEFAULT_GLUCOSE_RANGE_LIMITS,
+  );
+  const [draftHba1c, setDraftHba1c] = useState({
+    hba1c: profile.hba1c || "",
+    hba1cDate: profile.hba1cDate || "",
+  });
 
   useEffect(() => {
     setDraftProfile(profile);
+    setDraftGlucoseRanges({
+      ...DEFAULT_GLUCOSE_RANGE_LIMITS,
+      ...(profile.glucoseRanges || {}),
+    });
+    setDraftHba1c({
+      hba1c: profile.hba1c || "",
+      hba1cDate: profile.hba1cDate || "",
+    });
   }, [profile]);
 
   function updateDraft(key, value) {
@@ -44,6 +62,21 @@ export function ProfilePage({
 
   function displayValue(value) {
     return value || "Not provided";
+  }
+
+  const glucoseRanges = {
+    ...DEFAULT_GLUCOSE_RANGE_LIMITS,
+    ...(profile.glucoseRanges || {}),
+  };
+
+  function saveGlucoseRanges() {
+    setProfile({ ...profile, glucoseRanges: draftGlucoseRanges });
+    setEditingGlucoseRanges(false);
+  }
+
+  function saveHba1c() {
+    setProfile({ ...profile, ...draftHba1c });
+    setEditingHba1c(false);
   }
 
   return (
@@ -223,6 +256,283 @@ export function ProfilePage({
                   </button>
                 </div>
               </div>
+            )}
+          </details>
+
+          <details className="profileDetails" open>
+            <summary className="profileSummary">
+              <span>Glucose ranges</span>
+              <ChevronDown size={17} />
+            </summary>
+            {!editingGlucoseRanges && (
+              <p className="mutedSmall">
+                These ranges personalise labels across your readings, dashboard,
+                trends and reports. Confirm them with your diabetes team.
+              </p>
+            )}
+            {!editingGlucoseRanges ? (
+              <>
+                <div className="profileInfoGrid">
+                  <div>
+                    <span className="profileInfoLabel">Very low below</span>
+                    <span className="profileInfoValue">
+                      {glucoseRanges.veryLowMax} mmol/L
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Low below</span>
+                    <span className="profileInfoValue">
+                      {glucoseRanges.lowMax} mmol/L
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">In range up to</span>
+                    <span className="profileInfoValue">
+                      {glucoseRanges.targetMax} mmol/L
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">High below</span>
+                    <span className="profileInfoValue">
+                      {glucoseRanges.highMax} mmol/L
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="btnGhost profileAction"
+                  type="button"
+                  onClick={() => setEditingGlucoseRanges(true)}
+                >
+                  <Pencil size={15} /> Edit glucose ranges
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="profileRangeGrid">
+                  <div>
+                    <label className="fieldLabel" htmlFor="range-very-low">
+                      Very low below
+                    </label>
+                    <input
+                      id="range-very-low"
+                      className="textInput"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={draftGlucoseRanges.veryLowMax}
+                      onChange={(event) =>
+                        setDraftGlucoseRanges({
+                          ...draftGlucoseRanges,
+                          veryLowMax: event.target.value,
+                        })
+                      }
+                    />
+                    <span className="profileFieldHint">mmol/L</span>
+                  </div>
+                  <div>
+                    <label className="fieldLabel" htmlFor="range-low">
+                      Low below
+                    </label>
+                    <input
+                      id="range-low"
+                      className="textInput"
+                      type="number"
+                      min="0.2"
+                      step="0.1"
+                      value={draftGlucoseRanges.lowMax}
+                      onChange={(event) =>
+                        setDraftGlucoseRanges({
+                          ...draftGlucoseRanges,
+                          lowMax: event.target.value,
+                        })
+                      }
+                    />
+                    <span className="profileFieldHint">mmol/L</span>
+                  </div>
+                  <div>
+                    <label className="fieldLabel" htmlFor="range-target">
+                      In range up to
+                    </label>
+                    <input
+                      id="range-target"
+                      className="textInput"
+                      type="number"
+                      min="0.3"
+                      step="0.1"
+                      value={draftGlucoseRanges.targetMax}
+                      onChange={(event) =>
+                        setDraftGlucoseRanges({
+                          ...draftGlucoseRanges,
+                          targetMax: event.target.value,
+                        })
+                      }
+                    />
+                    <span className="profileFieldHint">mmol/L</span>
+                  </div>
+                  <div>
+                    <label className="fieldLabel" htmlFor="range-high">
+                      High below
+                    </label>
+                    <input
+                      id="range-high"
+                      className="textInput"
+                      type="number"
+                      min="0.4"
+                      step="0.1"
+                      value={draftGlucoseRanges.highMax}
+                      onChange={(event) =>
+                        setDraftGlucoseRanges({
+                          ...draftGlucoseRanges,
+                          highMax: event.target.value,
+                        })
+                      }
+                    />
+                    <span className="profileFieldHint">mmol/L</span>
+                  </div>
+                </div>
+                <div className="profileRangeLegend">
+                  <span>
+                    <i className="profileRangeDot profileRangeDot-low" /> Very
+                    low
+                  </span>
+                  <span>
+                    <i className="profileRangeDot profileRangeDot-low" /> Low
+                  </span>
+                  <span>
+                    <i className="profileRangeDot profileRangeDot-target" /> In
+                    range
+                  </span>
+                  <span>
+                    <i className="profileRangeDot profileRangeDot-high" /> High
+                  </span>
+                  <span>
+                    <i className="profileRangeDot profileRangeDot-high" /> Very
+                    high
+                  </span>
+                </div>
+                <div className="profileEditActions">
+                  <button
+                    className="btnGhost"
+                    type="button"
+                    onClick={() => {
+                      setDraftGlucoseRanges(glucoseRanges);
+                      setEditingGlucoseRanges(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btnPrimary"
+                    type="button"
+                    onClick={saveGlucoseRanges}
+                  >
+                    <Check size={16} /> Save ranges
+                  </button>
+                </div>
+              </>
+            )}
+          </details>
+
+          <details className="profileDetails" open>
+            <summary className="profileSummary">
+              <span>Most recent HbA1c</span>
+              <ChevronDown size={17} />
+            </summary>
+            {!editingHba1c && (
+              <p className="mutedSmall">
+                HbA1c reflects your average glucose over roughly the previous
+                three months. Add the result and the date of the test.
+              </p>
+            )}
+            {!editingHba1c ? (
+              <>
+                <div className="profileInfoGrid">
+                  <div>
+                    <span className="profileInfoLabel">Result</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.hba1c ? `${profile.hba1c}%` : "")}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="profileInfoLabel">Test date</span>
+                    <span className="profileInfoValue">
+                      {displayValue(profile.hba1cDate)}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="btnGhost profileAction"
+                  type="button"
+                  onClick={() => setEditingHba1c(true)}
+                >
+                  <Pencil size={15} /> Edit HbA1c
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="profileRangeGrid">
+                  <div>
+                    <label className="fieldLabel" htmlFor="hba1c-value">
+                      HbA1c result (%)
+                    </label>
+                    <input
+                      id="hba1c-value"
+                      className="textInput"
+                      type="number"
+                      min="0"
+                      max="30"
+                      step="0.1"
+                      value={draftHba1c.hba1c}
+                      onChange={(event) =>
+                        setDraftHba1c({
+                          ...draftHba1c,
+                          hba1c: event.target.value,
+                        })
+                      }
+                      placeholder="e.g. 7.2"
+                    />
+                  </div>
+                  <div>
+                    <label className="fieldLabel" htmlFor="hba1c-date">
+                      Test date
+                    </label>
+                    <input
+                      id="hba1c-date"
+                      className="textInput"
+                      type="date"
+                      value={draftHba1c.hba1cDate}
+                      onChange={(event) =>
+                        setDraftHba1c({
+                          ...draftHba1c,
+                          hba1cDate: event.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="profileEditActions">
+                  <button
+                    className="btnGhost"
+                    type="button"
+                    onClick={() => {
+                      setDraftHba1c({
+                        hba1c: profile.hba1c || "",
+                        hba1cDate: profile.hba1cDate || "",
+                      });
+                      setEditingHba1c(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btnPrimary"
+                    type="button"
+                    onClick={saveHba1c}
+                  >
+                    <Check size={16} /> Save HbA1c
+                  </button>
+                </div>
+              </>
             )}
           </details>
 

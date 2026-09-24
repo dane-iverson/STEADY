@@ -88,6 +88,14 @@ export const defaultProfile = {
   status: "Type 1 diabetes",
   contactName: "",
   contactNumber: "",
+  hba1c: "",
+  hba1cDate: "",
+  glucoseRanges: {
+    veryLowMax: 3,
+    lowMax: 4,
+    targetMax: 7.8,
+    highMax: 14,
+  },
 };
 
 const defaultSharing = {
@@ -317,6 +325,7 @@ export default function App() {
           {screen === "dashboard" && (
             <DashboardPage
               ageGroup={ageGroup}
+              profile={profile}
               name={name}
               readings={readings}
               reminders={reminders}
@@ -327,6 +336,7 @@ export default function App() {
           {screen === "glucose" && (
             <GlucoseRecordingPage
               ageGroup={ageGroup}
+              profile={profile}
               online={online}
               readings={readings}
               editingReading={editingReading}

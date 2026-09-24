@@ -529,6 +529,15 @@ body {
 .reminderHistoryItem span { color: var(--ink-soft); font-size: 10px; white-space: nowrap; }
 .reminderHistoryItem p { margin: 5px 0 0; color: var(--ink-soft); line-height: 1.4; }
 .reminderFieldSpacing { margin-top: 12px; }
+.profileRangeGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 10px; margin-top: 12px; }
+.profileRangeGrid .fieldLabel { margin-bottom: 6px; }
+.profileFieldHint { display: block; margin-top: 4px; color: var(--ink-soft); font-size: 10px; }
+.profileRangeLegend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 13px; color: var(--ink-soft); font-size: 10px; }
+.profileRangeLegend span { display: inline-flex; align-items: center; gap: 4px; }
+.profileRangeDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.profileRangeDot-low { background: #3e7cb8; }
+.profileRangeDot-target { background: #2f9e6e; }
+.profileRangeDot-high { background: #c1622b; }
 .calculatorHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .calculatorHeader .screenSub { max-width: 260px; }
 .safetyNotice { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0 13px; padding: 10px 12px; border: 1px solid #efc9a9; border-radius: 11px; background: #fff7ee; color: #8a4d24; font-size: 11.5px; line-height: 1.4; }
@@ -636,6 +645,7 @@ body {
   .formGrid { grid-template-columns: 1fr; }
   .calculatorFormGrid { grid-template-columns: 1fr; }
   .calculatorBreakdown { grid-template-columns: 1fr; gap: 7px; }
+  .profileRangeGrid { grid-template-columns: 1fr; }
   .trendDateGrid { grid-template-columns: 1fr; }
   .modalBackdrop { padding: 10px; }
   .modalPanel { max-height: calc(100svh - 20px); }

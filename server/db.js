@@ -71,6 +71,14 @@ export function createUserDocument(data) {
       status: data.profile?.status || "Type 1 diabetes",
       contactName: data.profile?.contactName || "",
       contactNumber: data.profile?.contactNumber || "",
+      hba1c: data.profile?.hba1c || "",
+      hba1cDate: data.profile?.hba1cDate || "",
+      glucoseRanges: {
+        veryLowMax: data.profile?.glucoseRanges?.veryLowMax ?? 3,
+        lowMax: data.profile?.glucoseRanges?.lowMax ?? 4,
+        targetMax: data.profile?.glucoseRanges?.targetMax ?? 7.8,
+        highMax: data.profile?.glucoseRanges?.highMax ?? 14,
+      },
     },
     sharing: data.sharing || {
       on: false,

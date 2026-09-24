@@ -122,6 +122,26 @@ test("classifies after-meal and random readings using SA ranges", () => {
   });
 });
 
+test("classifies readings using patient-specific glucose limits", () => {
+  const customLimits = {
+    veryLowMax: 2.5,
+    lowMax: 3.5,
+    targetMax: 8.5,
+    highMax: 15,
+  };
+
+  assert.deepEqual(statusOf(8, "Random", customLimits), {
+    label: "In range",
+    key: "target",
+    symbol: "●",
+  });
+  assert.deepEqual(statusOf(14.5, "Random", customLimits), {
+    label: "High",
+    key: "high",
+    symbol: "▲",
+  });
+});
+
 test("builds persisted readings with explicit date and time values", () => {
   const date = new Date("2026-09-10T08:35:00");
   const reading = buildReadingEntry(

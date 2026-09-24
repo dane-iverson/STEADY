@@ -41,10 +41,44 @@ export const GLUCOSE_RANGES = [
   },
 ];
 
-export function glucoseRangePosition(value) {
+export const DEFAULT_GLUCOSE_RANGE_LIMITS = {
+  veryLowMax: 3,
+  lowMax: 4,
+  targetMax: 7.8,
+  highMax: 14,
+};
+
+export function glucoseRangesFromLimits(limits = {}) {
+  const values = {
+    ...DEFAULT_GLUCOSE_RANGE_LIMITS,
+    ...limits,
+  };
+  const veryLowMax = Number(values.veryLowMax);
+  const lowMax = Number(values.lowMax);
+  const targetMax = Number(values.targetMax);
+  const highMax = Number(values.highMax);
+  if (
+    ![veryLowMax, lowMax, targetMax, highMax].every(Number.isFinite) ||
+    veryLowMax <= 0 ||
+    lowMax <= veryLowMax ||
+    targetMax <= lowMax ||
+    highMax <= targetMax
+  ) {
+    return GLUCOSE_RANGES;
+  }
+  return [
+    { ...GLUCOSE_RANGES[0], max: veryLowMax },
+    { ...GLUCOSE_RANGES[1], min: veryLowMax, max: lowMax },
+    { ...GLUCOSE_RANGES[2], min: lowMax, max: targetMax },
+    { ...GLUCOSE_RANGES[3], min: targetMax, max: highMax },
+    { ...GLUCOSE_RANGES[4], min: highMax },
+  ];
+}
+
+export function glucoseRangePosition(value, maxValue = 18) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return 0;
-  return Math.min(100, Math.max(0, (numericValue / 18) * 100));
+  return Math.min(100, Math.max(0, (numericValue / maxValue) * 100));
 }
 
 export function ageGroupFromDateOfBirth(dateOfBirth, today = new Date()) {
@@ -167,8 +201,16 @@ function classifyReading(v, context = "Random") {
   return { label: "Very high", key: "very-high", symbol: "▲" };
 }
 
-export function statusOf(v, context = "Random") {
-  return classifyReading(Number(v), context);
+export function statusOf(v, context = "Random", customLimits = null) {
+  if (!customLimits) return classifyReading(Number(v), context);
+  const value = Number(v);
+  const ranges = glucoseRangesFromLimits(customLimits);
+  const range =
+    ranges.find((band) => value >= band.min && value < band.max) ||
+    (value >= ranges[4].min ? ranges[4] : ranges[0]);
+  const symbol =
+    range.key === "target" ? "●" : range.key.includes("low") ? "▼" : "▲";
+  return { label: range.label, key: range.key, symbol };
 }
 
 function escapeHtml(value) {
@@ -267,7 +309,11 @@ export function exportReadingsToPdf({
   const readingRows = sortedReadings.length
     ? sortedReadings
         .map((reading) => {
-          const status = statusOf(reading.v, reading.context || "Random");
+          const status = statusOf(
+            reading.v,
+            reading.context || "Random",
+            profile.glucoseRanges,
+          );
           return `<tr><td>${escapeHtml(reading.time || formatReadingStamp(reading.date))}</td><td>${Number(reading.v).toFixed(1)} mmol/L</td><td>${escapeHtml(reading.context || "Random")}</td><td><span class="status status-${status.key}">${escapeHtml(status.label)}</span></td></tr>`;
         })
         .join("")
@@ -296,7 +342,7 @@ export function exportReadingsToPdf({
     .status { display: inline-block; border-radius: 12px; padding: 2px 7px; background: #e3f2ec; color: #2f9e6e; } .status-low { background: #e5eff8; color: #3e7cb8; } .status-very-low { background: #fdecec; color: #b94747; } .status-high, .status-very-high { background: #f7e9e0; color: #a6531c; } .empty { text-align: center; color: #5b675e; }
     footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid #d7e3df; color: #5b675e; font-size: 9px; }
   </style></head><body><header><div><h1>Steady</h1><p>Glucose and care record</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header>
-  <h2>Patient details</h2><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Date of birth</label><strong>${displayValue(profile.dateOfBirth)}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Height</label><strong>${displayValue(profile.height)}</strong></div><div class="detail"><label>Weight</label><strong>${displayValue(profile.weight)}</strong></div><div class="detail"><label>Gender</label><strong>${displayValue(profile.gender)}</strong></div><div class="detail"><label>Allergies</label><strong>${displayValue(profile.allergies)}</strong></div><div class="detail"><label>Other medication</label><strong>${displayValue(profile.otherMedication)}</strong></div><div class="detail"><label>Emergency contact</label><strong>${displayValue(`${profile.contactName || ""} ${profile.contactNumber || ""}`.trim())}</strong></div></div>
+  <h2>Patient details</h2><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Date of birth</label><strong>${displayValue(profile.dateOfBirth)}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Height</label><strong>${displayValue(profile.height)}</strong></div><div class="detail"><label>Weight</label><strong>${displayValue(profile.weight)}</strong></div><div class="detail"><label>Gender</label><strong>${displayValue(profile.gender)}</strong></div><div class="detail"><label>Allergies</label><strong>${displayValue(profile.allergies)}</strong></div><div class="detail"><label>Other medication</label><strong>${displayValue(profile.otherMedication)}</strong></div><div class="detail"><label>Most recent HbA1c</label><strong>${displayValue(profile.hba1c ? `${profile.hba1c}%${profile.hba1cDate ? ` (${profile.hba1cDate})` : ""}` : "Not provided")}</strong></div><div class="detail"><label>Emergency contact</label><strong>${displayValue(`${profile.contactName || ""} ${profile.contactNumber || ""}`.trim())}</strong></div></div>
   <h2>Saved glucose readings (${filteredReadings.length})</h2><p>Export range: ${escapeHtml(rangeLabel)}</p><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table>
   <h2>Saved reminders</h2><table><thead><tr><th>Reminder</th><th>Type</th><th>Repeats</th><th>Status</th></tr></thead><tbody>${reminderRows}</tbody></table>
   <footer>This report contains data stored in Steady. It is intended to support conversations with your healthcare team and does not replace medical advice.</footer></body></html>`);
@@ -308,7 +354,7 @@ export function exportReadingsToPdf({
   return true;
 }
 
-function trendChartSvg(points, title) {
+function trendChartSvg(points, title, customLimits = null) {
   const width = 760;
   const height = 250;
   const left = 54;
@@ -317,11 +363,21 @@ function trendChartSvg(points, title) {
   const bottom = 46;
   const chartWidth = width - left - right;
   const chartHeight = height - top - bottom;
+  const glucoseRanges = glucoseRangesFromLimits(customLimits || undefined);
+  const chartMax = Math.max(18, glucoseRanges[3].max + 4);
   const xStep =
     points.length > 1 ? chartWidth / (points.length - 1) : chartWidth;
   const y = (value) =>
-    top + chartHeight - (Math.min(18, Math.max(0, value)) / 18) * chartHeight;
-  const yTicks = [0, 3, 4, 7.8, 14, 18];
+    top +
+    chartHeight -
+    (Math.min(chartMax, Math.max(0, value)) / chartMax) * chartHeight;
+  const yTicks = [
+    0,
+    ...glucoseRanges
+      .map((band) => band.max)
+      .filter((value) => value < chartMax),
+    chartMax,
+  ].filter((value, index, values) => values.indexOf(value) === index);
   const pointCoordinates = points.map((point, index) => [
     left + (points.length > 1 ? index * xStep : chartWidth / 2),
     y(point.v),
@@ -352,10 +408,12 @@ function trendChartSvg(points, title) {
         `<circle cx="${x.toFixed(1)}" cy="${pointY.toFixed(1)}" r="4" fill="#176b5b"><title>${escapeHtml(points[index].t)}: ${Number(points[index].v).toFixed(1)} mmol/L</title></circle>`,
     )
     .join("");
-  const rangeBands = GLUCOSE_RANGES.map(
-    (band) =>
-      `<rect x="${left}" y="${y(band.max)}" width="${chartWidth}" height="${y(band.min) - y(band.max)}" fill="${band.fill}" fill-opacity=".82"/>`,
-  ).join("");
+  const rangeBands = glucoseRanges
+    .map(
+      (band) =>
+        `<rect x="${left}" y="${y(band.max)}" width="${chartWidth}" height="${y(band.min) - y(band.max)}" fill="${band.fill}" fill-opacity=".82"/>`,
+    )
+    .join("");
   const gridLines = yTicks
     .map(
       (tick) =>
@@ -373,16 +431,21 @@ export function exportTrendsToPdf({
   weeklyPoints = [],
   exportMode = "both",
   rangeLabel = "Selected period",
+  glucoseRanges = null,
 }) {
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) return false;
 
   const selectedCharts = [];
   if (exportMode === "daily" || exportMode === "both") {
-    selectedCharts.push(trendChartSvg(dailyPoints, "Daily readings"));
+    selectedCharts.push(
+      trendChartSvg(dailyPoints, "Daily readings", glucoseRanges),
+    );
   }
   if (exportMode === "weekly" || exportMode === "both") {
-    selectedCharts.push(trendChartSvg(weeklyPoints, "Weekly averages"));
+    selectedCharts.push(
+      trendChartSvg(weeklyPoints, "Weekly averages", glucoseRanges),
+    );
   }
   const sortedReadings = [...readings].sort(
     (first, second) => new Date(second.date) - new Date(first.date),
@@ -390,7 +453,11 @@ export function exportTrendsToPdf({
   const readingRows = sortedReadings.length
     ? sortedReadings
         .map((reading) => {
-          const status = statusOf(reading.v, reading.context || "Random");
+          const status = statusOf(
+            reading.v,
+            reading.context || "Random",
+            glucoseRanges,
+          );
           return `<tr><td>${escapeHtml(reading.time || formatReadingStamp(reading.date))}</td><td>${Number(reading.v).toFixed(1)} mmol/L</td><td>${escapeHtml(reading.context || "Random")}</td><td>${escapeHtml(status.label)}</td></tr>`;
         })
         .join("")
