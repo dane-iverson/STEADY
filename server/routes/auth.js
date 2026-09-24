@@ -6,6 +6,13 @@ import { createUserDocument, memoryUsers } from "../db.js";
 
 const router = express.Router();
 
+function databaseConfigured() {
+  return Boolean(
+    process.env.MONGODB_URI &&
+      !process.env.MONGODB_URI.includes("placeholder"),
+  );
+}
+
 function ageGroupFromDateOfBirth(dateOfBirth) {
   const birthDate = new Date(`${dateOfBirth}T00:00:00`);
   if (
@@ -74,11 +81,11 @@ router.post("/signup", async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await User.findOne({ email: normalizedEmail }).catch(
-      () => null,
-    );
+    const existingUser = databaseConfigured()
+      ? await User.findOne({ email: normalizedEmail })
+      : null;
     const memoryMatch = memoryUsers.find(
-      (user) => user.email === normalizedEmail,
+      (user) => user.email?.trim().toLowerCase() === normalizedEmail,
     );
 
     if (existingUser || memoryMatch) {
@@ -134,20 +141,27 @@ router.post("/signup", async (req, res) => {
     });
 
     let savedUser;
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
-      savedUser = await User.create({
-        name: newUser.name,
-        email: newUser.email,
-        passwordHash: newUser.passwordHash,
-        ageGroup: newUser.ageGroup,
-        readings: newUser.readings,
-        reminders: newUser.reminders,
-        profile: newUser.profile,
-        sharing: newUser.sharing,
-      });
+    if (databaseConfigured()) {
+      try {
+        savedUser = await User.create({
+          name: newUser.name,
+          email: newUser.email,
+          passwordHash: newUser.passwordHash,
+          ageGroup: newUser.ageGroup,
+          readings: newUser.readings,
+          reminders: newUser.reminders,
+          insulinSettings: newUser.insulinSettings,
+          profile: newUser.profile,
+          sharing: newUser.sharing,
+        });
+      } catch (error) {
+        if (error?.code === 11000) {
+          return res
+            .status(409)
+            .json({ message: "An account already exists with that email." });
+        }
+        throw error;
+      }
     } else {
       savedUser = { ...newUser, passwordHash };
       memoryUsers.push(savedUser);
