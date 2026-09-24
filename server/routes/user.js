@@ -32,9 +32,11 @@ function sanitizeUser(user) {
     _id: user._id,
     name: user.name,
     email: user.email,
+    accountType: user.accountType || "patient",
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
+    sharedItems: user.sharedItems || [],
     insulinSettings: user.insulinSettings || {},
     profile: user.profile || {
       name: "",
@@ -54,7 +56,9 @@ function sanitizeUser(user) {
     },
     sharing: user.sharing || {
       on: false,
-      perms: { glucose: true, trends: false, reminders: false },
+      perms: { glucose: true, trends: false, reminders: false, hba1c: false },
+      caregivers: [],
+      sharedItems: [],
     },
   };
 }
@@ -137,7 +141,9 @@ router.put("/me", async (req, res) => {
       },
       sharing: updates.sharing || {
         on: false,
-        perms: { glucose: true, trends: false, reminders: false },
+        perms: { glucose: true, trends: false, reminders: false, hba1c: false },
+        caregivers: [],
+        sharedItems: [],
       },
     };
 
@@ -165,6 +171,108 @@ router.put("/me", async (req, res) => {
     res.json({ user: sanitizeUser(user) });
   } catch (error) {
     res.status(500).json({ message: "Could not save profile." });
+  }
+});
+
+router.post("/caregivers", async (req, res) => {
+  try {
+    const normalizedEmail = req.body?.caregiverEmail?.trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({ message: "Caregiver email is required." });
+    }
+
+    let caregiver;
+    if (
+      process.env.MONGODB_URI &&
+      !process.env.MONGODB_URI.includes("placeholder")
+    ) {
+      caregiver = await User.findOne({
+        email: normalizedEmail,
+        $or: [{ accountType: "caregiver" }, { ageGroup: "caregiver" }],
+      });
+    } else {
+      caregiver = memoryUsers.find(
+        (entry) =>
+          entry.email?.trim().toLowerCase() === normalizedEmail &&
+          (entry.accountType === "caregiver" || entry.ageGroup === "caregiver"),
+      );
+    }
+
+    if (!caregiver) {
+      return res
+        .status(404)
+        .json({ message: "No caregiver account was found with that email." });
+    }
+
+    res.json({
+      caregiver: {
+        _id: caregiver._id,
+        name: caregiver.name,
+        email: caregiver.email,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Could not check caregiver account." });
+  }
+});
+
+router.post("/share", async (req, res) => {
+  try {
+    const { caregiverEmail, item } = req.body || {};
+    const normalizedEmail = caregiverEmail?.trim().toLowerCase();
+    if (!normalizedEmail || !item?.title || !item?.detail) {
+      return res
+        .status(400)
+        .json({ message: "Caregiver and shared item are required." });
+    }
+
+    let patient;
+    let caregiver;
+    if (
+      process.env.MONGODB_URI &&
+      !process.env.MONGODB_URI.includes("placeholder")
+    ) {
+      patient = await User.findById(req.userId);
+      caregiver = await User.findOne({
+        email: normalizedEmail,
+        $or: [{ accountType: "caregiver" }, { ageGroup: "caregiver" }],
+      });
+      if (!caregiver)
+        return res
+          .status(404)
+          .json({ message: "Caregiver account not found." });
+      await User.findByIdAndUpdate(caregiver._id, {
+        $push: {
+          sharedItems: {
+            ...item,
+            senderName: patient?.name || "A patient",
+            recipientEmail: normalizedEmail,
+          },
+        },
+      });
+    } else {
+      patient = memoryUsers.find((entry) => entry._id === req.userId);
+      caregiver = memoryUsers.find(
+        (entry) =>
+          entry.email?.trim().toLowerCase() === normalizedEmail &&
+          (entry.accountType === "caregiver" || entry.ageGroup === "caregiver"),
+      );
+      if (!caregiver)
+        return res
+          .status(404)
+          .json({ message: "Caregiver account not found." });
+      caregiver.sharedItems = [
+        {
+          ...item,
+          senderName: patient?.name || "A patient",
+          recipientEmail: normalizedEmail,
+        },
+        ...(caregiver.sharedItems || []),
+      ];
+    }
+    res.status(201).json({ item });
+  } catch (error) {
+    res.status(500).json({ message: "Could not share the item." });
   }
 });
 

@@ -7,6 +7,7 @@ const API_BASE =
 
 export function AuthPage({ onAuthSuccess }) {
   const [mode, setMode] = useState("login");
+  const [accountType, setAccountType] = useState("patient");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [form, setForm] = useState({
@@ -34,7 +35,7 @@ export function AuthPage({ onAuthSuccess }) {
     e.preventDefault();
     setError("");
 
-    if (mode === "signup") {
+    if (mode === "signup" && accountType === "patient") {
       if (!form.name.trim()) {
         setError("Please add your name.");
         return;
@@ -47,10 +48,18 @@ export function AuthPage({ onAuthSuccess }) {
         setError("Please select male or female.");
         return;
       }
-      if (form.password !== form.confirmPassword) {
-        setError("Passwords do not match.");
-        return;
-      }
+    } else if (mode === "signup" && !form.name.trim()) {
+      setError("Please add your name.");
+      return;
+    } else if (mode === "signup" && !form.surname.trim()) {
+      setError("Please add your surname.");
+      return;
+    }
+    if (mode === "signup" && form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (mode === "signup") {
       if (!termsAccepted) {
         setError(
           "Please agree to the Terms and Conditions to create an account.",
@@ -71,6 +80,7 @@ export function AuthPage({ onAuthSuccess }) {
               ageGroup: ageGroupFromDateOfBirth(form.dateOfBirth),
               email: form.email,
               password: form.password,
+              accountType,
               profile: {
                 name: form.name,
                 surname: form.surname,
@@ -135,8 +145,39 @@ export function AuthPage({ onAuthSuccess }) {
         </button>
       </div>
 
+      {mode === "signup" && (
+        <div className="accountTypeChoice">
+          <div className="fieldLabel">Account type</div>
+          <div className="chipRow">
+            <button
+              type="button"
+              className={
+                "chip" + (accountType === "patient" ? " chipActive" : "")
+              }
+              onClick={() => setAccountType("patient")}
+            >
+              Patient
+            </button>
+            <button
+              type="button"
+              className={
+                "chip" + (accountType === "caregiver" ? " chipActive" : "")
+              }
+              onClick={() => setAccountType("caregiver")}
+            >
+              Caregiver
+            </button>
+          </div>
+          <div className="dateFieldHint">
+            {accountType === "caregiver"
+              ? "Create an account to receive shared updates inside Steady."
+              : "Create an account to manage your own diabetes information."}
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
-        {mode === "signup" && (
+        {mode === "signup" && accountType === "patient" && (
           <>
             <label className="fieldLabel">Your name</label>
             <input
@@ -216,6 +257,29 @@ export function AuthPage({ onAuthSuccess }) {
               className="textInput"
               value={form.allergies}
               onChange={(e) => updateField("allergies", e.target.value)}
+            />
+          </>
+        )}
+
+        {mode === "signup" && accountType === "caregiver" && (
+          <>
+            <label className="fieldLabel">First name</label>
+            <input
+              className="textInput"
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              placeholder="e.g. Alex"
+              required
+            />
+            <label className="fieldLabel" style={{ marginTop: 12 }}>
+              Surname
+            </label>
+            <input
+              className="textInput"
+              value={form.surname}
+              onChange={(e) => updateField("surname", e.target.value)}
+              placeholder="e.g. Smith"
+              required
             />
           </>
         )}

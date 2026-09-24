@@ -14,6 +14,7 @@ import { EducationPage } from "./pages/EducationPage";
 import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { InsulinCalculatorPage } from "./pages/InsulinCalculatorPage";
+import { CaregiverInboxPage } from "./pages/CaregiverInboxPage";
 import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
@@ -100,7 +101,9 @@ export const defaultProfile = {
 
 const defaultSharing = {
   on: false,
-  perms: { glucose: true, trends: false, reminders: false },
+  perms: { glucose: true, trends: false, reminders: false, hba1c: false },
+  caregivers: [],
+  sharedItems: [],
 };
 
 export default function App() {
@@ -119,6 +122,8 @@ export default function App() {
   const [insulinSettings, setInsulinSettings] = useState(
     DEFAULT_INSULIN_SETTINGS,
   );
+  const [accountType, setAccountType] = useState("patient");
+  const [sharedItems, setSharedItems] = useState([]);
 
   useEffect(() => {
     if (!token) return;
@@ -138,7 +143,11 @@ export default function App() {
 
         const payload = await response.json();
         hydrateFromUser(payload.user);
-        setScreen("dashboard");
+        setScreen(
+          payload.user?.accountType === "caregiver"
+            ? "caregiverInbox"
+            : "dashboard",
+        );
       } catch (error) {
         console.error("Failed to load user profile.", error);
       }
@@ -146,6 +155,12 @@ export default function App() {
 
     loadProfile();
   }, [token]);
+
+  useEffect(() => {
+    if (accountType === "caregiver" && screen !== "caregiverInbox") {
+      setScreen("caregiverInbox");
+    }
+  }, [accountType, screen]);
 
   function hydrateFromUser(user) {
     setName(user.name || "");
@@ -158,6 +173,8 @@ export default function App() {
       ...DEFAULT_INSULIN_SETTINGS,
       ...(user.insulinSettings || {}),
     });
+    setAccountType(user.accountType || "patient");
+    setSharedItems(user.sharedItems || []);
   }
 
   async function persistUserState(nextOverrides = {}) {
@@ -170,6 +187,7 @@ export default function App() {
       profile,
       sharing,
       insulinSettings,
+      sharedItems,
       ...nextOverrides,
       name: nextOverrides.name ?? nextOverrides.profile?.name ?? name,
     };
@@ -188,11 +206,57 @@ export default function App() {
     }
   }
 
+  async function refreshUserState() {
+    if (!token) return;
+    const response = await fetch(`${API_BASE}/user/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Could not refresh the inbox.");
+    const payload = await response.json();
+    hydrateFromUser(payload.user);
+  }
+
+  async function sendSharedItemToCaregiver(item, caregiverEmail) {
+    if (!token) throw new Error("You need to be signed in to share updates.");
+    const response = await fetch(`${API_BASE}/user/share`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ caregiverEmail, item }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.message || "Could not share the update.");
+    }
+    return payload.item;
+  }
+
+  async function connectCaregiver(caregiverEmail) {
+    if (!token) throw new Error("You need to be signed in to add a caregiver.");
+    const response = await fetch(`${API_BASE}/user/caregivers`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ caregiverEmail }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.message || "Could not add caregiver.");
+    }
+    return payload.caregiver;
+  }
+
   function handleAuthSuccess(user, authToken) {
     localStorage.setItem("steady-token", authToken);
     setToken(authToken);
     hydrateFromUser(user);
-    setScreen("dashboard");
+    setScreen(
+      user?.accountType === "caregiver" ? "caregiverInbox" : "dashboard",
+    );
   }
 
   function resetUserState() {
@@ -203,6 +267,8 @@ export default function App() {
     setProfile(defaultProfile);
     setSharing(defaultSharing);
     setInsulinSettings(DEFAULT_INSULIN_SETTINGS);
+    setAccountType("patient");
+    setSharedItems([]);
     setOnline(true);
   }
 
@@ -273,15 +339,20 @@ export default function App() {
     setEditingReading(null);
   }
 
-  const showTopBar = !["welcome", "auth"].includes(screen);
-  const showNav = [
-    "dashboard",
-    "trends",
-    "reminders",
-    "education",
-    "emergency",
-    "insulinCalculator",
-  ].includes(screen);
+  const isCaregiver = accountType === "caregiver";
+  const routedScreen = isCaregiver ? "caregiverInbox" : screen;
+  const showTopBar =
+    !["welcome", "auth", "caregiverInbox"].includes(routedScreen) &&
+    !isCaregiver;
+  const showNav =
+    [
+      "dashboard",
+      "trends",
+      "reminders",
+      "education",
+      "emergency",
+      "insulinCalculator",
+    ].includes(routedScreen) && !isCaregiver;
 
   const titles = {
     dashboard: "Steady",
@@ -293,6 +364,7 @@ export default function App() {
     emergency: "Emergency",
     insulinCalculator: "Insulin calculator",
     profile: "Your details",
+    caregiverInbox: "Shared with me",
   };
 
   return (
@@ -300,7 +372,7 @@ export default function App() {
       <div className="phone">
         {showTopBar && (
           <TopBar
-            title={titles[screen]}
+            title={titles[routedScreen]}
             onBack={null}
             onHome={() => setScreen("dashboard")}
             online={online}
@@ -310,11 +382,11 @@ export default function App() {
         )}
 
         <div className="phoneBody">
-          {screen === "welcome" && (
+          {routedScreen === "welcome" && (
             <WelcomePage onNext={() => setScreen("auth")} />
           )}
 
-          {screen === "auth" && (
+          {routedScreen === "auth" && (
             <AuthPage
               onAuthSuccess={(user, authToken) => {
                 handleAuthSuccess(user, authToken);
@@ -322,7 +394,17 @@ export default function App() {
             />
           )}
 
-          {screen === "dashboard" && (
+          {routedScreen === "caregiverInbox" && (
+            <CaregiverInboxPage
+              name={name}
+              email="Caregiver account"
+              sharedItems={sharedItems}
+              onRefresh={refreshUserState}
+              onLogout={handleLogout}
+            />
+          )}
+
+          {routedScreen === "dashboard" && (
             <DashboardPage
               ageGroup={ageGroup}
               profile={profile}
@@ -333,7 +415,7 @@ export default function App() {
             />
           )}
 
-          {screen === "glucose" && (
+          {routedScreen === "glucose" && (
             <GlucoseRecordingPage
               ageGroup={ageGroup}
               profile={profile}
@@ -349,12 +431,16 @@ export default function App() {
               }}
               onBack={() => {
                 clearEditingReading();
-                setScreen("dashboard");
+                setScreen(
+                  user.accountType === "caregiver"
+                    ? "caregiverInbox"
+                    : "dashboard",
+                );
               }}
             />
           )}
 
-          {screen === "glucoseHistory" && (
+          {routedScreen === "glucoseHistory" && (
             <GlucoseHistoryPage
               readings={readings}
               profile={profile}
@@ -369,7 +455,7 @@ export default function App() {
             />
           )}
 
-          {screen === "trends" && (
+          {routedScreen === "trends" && (
             <TrendsPage
               readings={readings}
               profile={profile}
@@ -377,7 +463,7 @@ export default function App() {
             />
           )}
 
-          {screen === "reminders" && (
+          {routedScreen === "reminders" && (
             <RemindersPage
               reminders={reminders}
               setReminders={(next) => {
@@ -388,21 +474,21 @@ export default function App() {
             />
           )}
 
-          {screen === "education" && (
+          {routedScreen === "education" && (
             <EducationPage
               ageGroup={ageGroup}
               onBack={() => setScreen("dashboard")}
             />
           )}
 
-          {screen === "emergency" && (
+          {routedScreen === "emergency" && (
             <EmergencyPage
               profile={profile}
               onBack={() => setScreen("dashboard")}
             />
           )}
 
-          {screen === "insulinCalculator" && (
+          {routedScreen === "insulinCalculator" && (
             <InsulinCalculatorPage
               ageGroup={ageGroup}
               settings={insulinSettings}
@@ -415,10 +501,12 @@ export default function App() {
             />
           )}
 
-          {screen === "profile" && (
+          {routedScreen === "profile" && (
             <ProfilePage
               ageGroup={ageGroup}
               profile={profile}
+              readings={readings}
+              reminders={reminders}
               setProfile={(nextProfile) => {
                 setProfile(nextProfile);
                 setName(nextProfile.name || "");
@@ -436,13 +524,15 @@ export default function App() {
                 setSharing(nextSharing);
                 persistUserState({ sharing: nextSharing });
               }}
+              onSendSharedItem={sendSharedItemToCaregiver}
+              onConnectCaregiver={connectCaregiver}
               onBack={() => setScreen("dashboard")}
               onLogout={handleLogout}
             />
           )}
         </div>
 
-        {showNav && <NavBar screen={screen} setScreen={setScreen} />}
+        {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
       </div>
     </div>
   );

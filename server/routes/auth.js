@@ -8,8 +8,7 @@ const router = express.Router();
 
 function databaseConfigured() {
   return Boolean(
-    process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder"),
+    process.env.MONGODB_URI && !process.env.MONGODB_URI.includes("placeholder"),
   );
 }
 
@@ -46,9 +45,11 @@ function sanitizeUser(user) {
     _id: user._id,
     name: user.name,
     email: user.email,
+    accountType: user.accountType || "patient",
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
+    sharedItems: user.sharedItems || [],
     profile: user.profile || {
       name: "",
       status: "Type 1 diabetes",
@@ -64,10 +65,25 @@ function sanitizeUser(user) {
 
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, profile } = req.body;
-    const ageGroup = ageGroupFromDateOfBirth(profile?.dateOfBirth);
+    const {
+      name,
+      email,
+      password,
+      profile,
+      accountType = "patient",
+    } = req.body;
+    const isCaregiver = accountType === "caregiver";
+    const ageGroup = isCaregiver
+      ? "caregiver"
+      : ageGroupFromDateOfBirth(profile?.dateOfBirth);
 
-    if (!name?.trim() || !email?.trim() || !password || !ageGroup) {
+    if (
+      !name?.trim() ||
+      !email?.trim() ||
+      !password ||
+      !ageGroup ||
+      (isCaregiver && !profile?.surname?.trim())
+    ) {
       return res
         .status(400)
         .json({ message: "Name, email and password are required." });
@@ -101,6 +117,7 @@ router.post("/signup", async (req, res) => {
       email: normalizedEmail,
       passwordHash,
       ageGroup: ageGroup || "teen",
+      accountType: isCaregiver ? "caregiver" : "patient",
       readings: [],
       reminders: [
         {
@@ -147,9 +164,11 @@ router.post("/signup", async (req, res) => {
           name: newUser.name,
           email: newUser.email,
           passwordHash: newUser.passwordHash,
+          accountType: newUser.accountType,
           ageGroup: newUser.ageGroup,
           readings: newUser.readings,
           reminders: newUser.reminders,
+          sharedItems: newUser.sharedItems,
           insulinSettings: newUser.insulinSettings,
           profile: newUser.profile,
           sharing: newUser.sharing,

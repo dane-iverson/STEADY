@@ -4,20 +4,80 @@ import {
   ChevronDown,
   Lock,
   Pencil,
+  Inbox,
   Share2,
+  Send,
+  Trash2,
+  UserPlus,
   User,
   Users,
 } from "lucide-react";
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
-import { DEFAULT_GLUCOSE_RANGE_LIMITS } from "../utils/diabetes";
+import {
+  DEFAULT_GLUCOSE_RANGE_LIMITS,
+  getReadingDateRange,
+  readingsForDateRange,
+  statusOf,
+} from "../utils/diabetes";
+
+const TREND_SHARE_RANGES = [
+  "Last 7 days",
+  "Last 30 days",
+  "Last 3 months",
+  "Last 6 months",
+  "This year",
+  "All recordings",
+];
+
+function buildSharedTrendPoints(readings, mode) {
+  const sorted = readings
+    .map((reading) => ({
+      value: Number(reading.v),
+      timestamp: new Date(reading.date),
+    }))
+    .filter(
+      (reading) =>
+        Number.isFinite(reading.value) &&
+        !Number.isNaN(reading.timestamp.getTime()),
+    )
+    .sort((first, second) => first.timestamp - second.timestamp);
+
+  if (mode === "daily") {
+    return sorted.map((reading) => ({
+      t: reading.timestamp.toLocaleDateString([], {
+        day: "numeric",
+        month: "short",
+      }),
+      v: reading.value,
+    }));
+  }
+
+  const weeks = new Map();
+  sorted.forEach((reading) => {
+    const start = new Date(reading.timestamp);
+    start.setDate(start.getDate() - start.getDay());
+    start.setHours(0, 0, 0, 0);
+    const key = start.toISOString().slice(0, 10);
+    if (!weeks.has(key)) weeks.set(key, { date: start, values: [] });
+    weeks.get(key).values.push(reading.value);
+  });
+  return [...weeks.values()].map(({ date, values }) => ({
+    t: date.toLocaleDateString([], { day: "numeric", month: "short" }),
+    v: values.reduce((sum, value) => sum + value, 0) / values.length,
+  }));
+}
 
 export function ProfilePage({
   ageGroup,
   profile,
+  readings = [],
+  reminders = [],
   setProfile,
   sharing,
   setSharing,
+  onSendSharedItem,
+  onConnectCaregiver,
   onBack,
   onLogout,
 }) {
@@ -33,6 +93,14 @@ export function ProfilePage({
     hba1c: profile.hba1c || "",
     hba1cDate: profile.hba1cDate || "",
   });
+  const [caregiverEmail, setCaregiverEmail] = useState("");
+  const [shareType, setShareType] = useState("glucose");
+  const [trendShareRange, setTrendShareRange] = useState("Last 7 days");
+  const [trendShareStart, setTrendShareStart] = useState("");
+  const [trendShareEnd, setTrendShareEnd] = useState("");
+  const [trendShareMode, setTrendShareMode] = useState("both");
+  const [sharingMessage, setSharingMessage] = useState("");
+  const [sharingBusy, setSharingBusy] = useState(false);
 
   useEffect(() => {
     setDraftProfile(profile);
@@ -77,6 +145,159 @@ export function ProfilePage({
   function saveHba1c() {
     setProfile({ ...profile, ...draftHba1c });
     setEditingHba1c(false);
+  }
+
+  const caregivers = sharing.caregivers || [];
+  const sharedItems = sharing.sharedItems || [];
+
+  async function addCaregiver() {
+    const email = caregiverEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) return;
+    if (caregivers.some((caregiver) => caregiver.email === email)) return;
+    setSharingBusy(true);
+    setSharingMessage("");
+    try {
+      const caregiver = await onConnectCaregiver?.(email);
+      setSharing({
+        ...sharing,
+        on: true,
+        caregivers: [
+          ...caregivers,
+          {
+            id: caregiver?._id || `caregiver-${Date.now()}`,
+            email,
+            name: caregiver?.name || "",
+            status: "connected",
+            addedAt: new Date().toISOString(),
+            permissions: { ...sharing.perms },
+          },
+        ],
+      });
+      setCaregiverEmail("");
+      setSharingMessage("Caregiver account connected.");
+    } catch (error) {
+      setSharingMessage(error.message);
+    } finally {
+      setSharingBusy(false);
+    }
+  }
+
+  function removeCaregiver(id) {
+    setSharing({
+      ...sharing,
+      caregivers: caregivers.filter((caregiver) => caregiver.id !== id),
+    });
+  }
+
+  function sendSharedItem() {
+    if (!caregivers.length) return;
+    const latestReading = readings[readings.length - 1];
+    const latestReminder = reminders[0];
+    const trendDateRange =
+      trendShareRange === "All recordings"
+        ? null
+        : trendShareRange === "Custom"
+          ? getReadingDateRange(trendShareRange, trendShareStart, trendShareEnd)
+          : getReadingDateRange(trendShareRange);
+    const trendReadings = readingsForDateRange(readings, trendDateRange);
+    const trendDailyPoints = buildSharedTrendPoints(trendReadings, "daily");
+    const trendWeeklyPoints = buildSharedTrendPoints(trendReadings, "weekly");
+    const itemDetails = {
+      glucose: latestReading
+        ? `Latest reading: ${Number(latestReading.v).toFixed(1)} mmol/L (${latestReading.context || "Random"})`
+        : "No glucose readings saved yet.",
+      trends: `Trend report: ${trendReadings.length} readings for ${trendShareRange === "Custom" ? `${trendShareStart} to ${trendShareEnd}` : trendShareRange}.`,
+      reminders: latestReminder
+        ? `Reminder activity: ${latestReminder.title}`
+        : "No reminder activity saved yet.",
+      hba1c: profile.hba1c
+        ? `Most recent HbA1c: ${profile.hba1c}%${profile.hba1cDate ? ` on ${profile.hba1cDate}` : ""}`
+        : "No HbA1c result saved yet.",
+    };
+    const validValues = readings
+      .map((reading) => Number(reading.v))
+      .filter(Number.isFinite);
+    const average = validValues.length
+      ? validValues.reduce((sum, value) => sum + value, 0) / validValues.length
+      : null;
+    const latestStatus = latestReading
+      ? statusOf(
+          latestReading.v,
+          latestReading.context || "Random",
+          profile.glucoseRanges,
+        )
+      : null;
+    const labels = {
+      glucose: "Glucose reading",
+      trends: "Trend summary",
+      reminders: "Reminder activity",
+      hba1c: "HbA1c result",
+    };
+    const sharedItem = {
+      id: `share-${Date.now()}`,
+      type: shareType,
+      title: labels[shareType],
+      detail: itemDetails[shareType],
+      sharedAt: new Date().toISOString(),
+      viewedAt: null,
+      senderName: `${profile.name || ""} ${profile.surname || ""}`.trim(),
+      data:
+        shareType === "glucose"
+          ? {
+              value: latestReading?.v ?? null,
+              unit: "mmol/L",
+              context: latestReading?.context || "Random",
+              readingAt: latestReading?.date || null,
+              status: latestStatus?.label || null,
+            }
+          : shareType === "trends"
+            ? {
+                readingCount: trendReadings.length,
+                averageGlucose: trendReadings.length
+                  ? trendReadings.reduce(
+                      (sum, reading) => sum + Number(reading.v),
+                      0,
+                    ) / trendReadings.length
+                  : null,
+                rangeLabel:
+                  trendShareRange === "Custom"
+                    ? `${trendShareStart} to ${trendShareEnd}`
+                    : trendShareRange,
+                chartMode: trendShareMode,
+                dailyPoints: trendDailyPoints,
+                weeklyPoints: trendWeeklyPoints,
+                glucoseRanges: profile.glucoseRanges,
+              }
+            : shareType === "reminders"
+              ? {
+                  reminderTitle: latestReminder?.title || null,
+                  completedCount: reminders.filter(
+                    (reminder) => (reminder.completionHistory || []).length > 0,
+                  ).length,
+                  activeCount: reminders.filter((reminder) => reminder.on)
+                    .length,
+                }
+              : {
+                  value: profile.hba1c || null,
+                  unit: "%",
+                  testedAt: profile.hba1cDate || null,
+                },
+    };
+    setSharing({
+      ...sharing,
+      on: true,
+      sharedItems: [sharedItem, ...sharedItems],
+    });
+    setSharingBusy(true);
+    setSharingMessage("");
+    Promise.all(
+      caregivers.map((caregiver) =>
+        onSendSharedItem?.(sharedItem, caregiver.email),
+      ),
+    )
+      .then(() => setSharingMessage("Update sent to the caregiver inbox."))
+      .catch((error) => setSharingMessage(error.message))
+      .finally(() => setSharingBusy(false));
   }
 
   return (
@@ -621,7 +842,8 @@ export function ProfilePage({
                   Share with a caregiver
                 </div>
                 <div className="mutedSmall">
-                  Let a parent or caregiver see selected information.
+                  Connect a caregiver account and send selected information
+                  through Steady.
                 </div>
               </div>
               <button
@@ -635,13 +857,62 @@ export function ProfilePage({
 
           {sharing.on && (
             <>
+              <div className="caregiverConnectionPanel">
+                <div className="sectionKicker">CAREGIVER ACCOUNT</div>
+                <h3>Add a caregiver</h3>
+                <p className="mutedSmall">
+                  Use the email address they used for their caregiver account.
+                  Health information stays inside the app.
+                </p>
+                <div className="caregiverInviteRow">
+                  <input
+                    className="textInput"
+                    type="email"
+                    value={caregiverEmail}
+                    onChange={(event) => setCaregiverEmail(event.target.value)}
+                    placeholder="caregiver@example.com"
+                    aria-label="Caregiver account email"
+                  />
+                  <button
+                    className="btnPrimary caregiverInviteButton"
+                    type="button"
+                    onClick={addCaregiver}
+                    disabled={!caregiverEmail.includes("@") || sharingBusy}
+                  >
+                    <UserPlus size={15} /> {sharingBusy ? "Checking..." : "Add"}
+                  </button>
+                </div>
+                {caregivers.map((caregiver) => (
+                  <div className="caregiverConnection" key={caregiver.id}>
+                    <div className="caregiverConnectionIdentity">
+                      <div className="caregiverAvatar">
+                        <User size={15} />
+                      </div>
+                      <div>
+                        <strong>{caregiver.email}</strong>
+                        <span>Connected caregiver account</span>
+                      </div>
+                    </div>
+                    <button
+                      className="iconBtn"
+                      type="button"
+                      onClick={() => removeCaregiver(caregiver.id)}
+                      aria-label={`Remove caregiver ${caregiver.email}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
               <div className="fieldLabel" style={{ marginTop: 4 }}>
-                What to share
+                Permissions
               </div>
               {[
                 ["glucose", "Blood glucose readings"],
                 ["trends", "Trend graphs"],
                 ["reminders", "Reminder activity"],
+                ["hba1c", "HbA1c result"],
               ].map(([key, label]) => (
                 <Card key={key} style={{ marginBottom: 8 }}>
                   <div className="rowBetween">
@@ -659,6 +930,13 @@ export function ProfilePage({
                             ...sharing.perms,
                             [key]: !sharing.perms[key],
                           },
+                          caregivers: caregivers.map((caregiver) => ({
+                            ...caregiver,
+                            permissions: {
+                              ...caregiver.permissions,
+                              [key]: !sharing.perms[key],
+                            },
+                          })),
                         })
                       }
                     >
@@ -668,35 +946,174 @@ export function ProfilePage({
                 </Card>
               ))}
 
-              <div className="fieldLabel" style={{ marginTop: 10 }}>
-                Caregiver's view (example)
-              </div>
-              <Card>
-                <div className="cardEyebrow">
-                  Shared by {profile.name || "you"}
+              <Card className="caregiverSendPanel">
+                <div className="rowBetween">
+                  <div>
+                    <div className="sectionKicker">SEND THROUGH STEADY</div>
+                    <h3>Share an update</h3>
+                  </div>
+                  <Send size={17} className="caregiverAccentIcon" />
                 </div>
-                {sharing.perms.glucose && (
-                  <div className="mutedSmall" style={{ marginTop: 6 }}>
-                    Last reading: 142 mg/dL · in range · 1:00pm
+                <p className="mutedSmall">
+                  Choose one update to place in the caregiver's in-app inbox.
+                </p>
+                <select
+                  className="textInput"
+                  value={shareType}
+                  onChange={(event) => setShareType(event.target.value)}
+                  disabled={
+                    !caregivers.length ||
+                    !sharing.perms[shareType] ||
+                    sharingBusy ||
+                    (shareType === "trends" &&
+                      trendShareRange === "Custom" &&
+                      (!trendShareStart || !trendShareEnd))
+                  }
+                >
+                  <option value="glucose" disabled={!sharing.perms.glucose}>
+                    Latest glucose reading
+                  </option>
+                  <option value="trends" disabled={!sharing.perms.trends}>
+                    Trend summary
+                  </option>
+                  <option value="reminders" disabled={!sharing.perms.reminders}>
+                    Reminder activity
+                  </option>
+                  <option value="hba1c" disabled={!sharing.perms.hba1c}>
+                    HbA1c result
+                  </option>
+                </select>
+                {shareType === "trends" && (
+                  <div className="trendShareOptions">
+                    <label className="fieldLabel" htmlFor="share-trend-range">
+                      Date range
+                    </label>
+                    <select
+                      id="share-trend-range"
+                      className="textInput"
+                      value={trendShareRange}
+                      onChange={(event) =>
+                        setTrendShareRange(event.target.value)
+                      }
+                    >
+                      {TREND_SHARE_RANGES.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                      <option value="Custom">Custom dates</option>
+                    </select>
+                    {trendShareRange === "Custom" && (
+                      <div className="trendDateGrid">
+                        <div>
+                          <label
+                            className="fieldLabel"
+                            htmlFor="share-trend-start"
+                          >
+                            From
+                          </label>
+                          <input
+                            id="share-trend-start"
+                            className="textInput"
+                            type="date"
+                            value={trendShareStart}
+                            onChange={(event) =>
+                              setTrendShareStart(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label
+                            className="fieldLabel"
+                            htmlFor="share-trend-end"
+                          >
+                            To
+                          </label>
+                          <input
+                            id="share-trend-end"
+                            className="textInput"
+                            type="date"
+                            value={trendShareEnd}
+                            onChange={(event) =>
+                              setTrendShareEnd(event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <label className="fieldLabel" htmlFor="share-trend-mode">
+                      Include graphs
+                    </label>
+                    <select
+                      id="share-trend-mode"
+                      className="textInput"
+                      value={trendShareMode}
+                      onChange={(event) =>
+                        setTrendShareMode(event.target.value)
+                      }
+                    >
+                      <option value="daily">Daily graph only</option>
+                      <option value="weekly">Weekly graph only</option>
+                      <option value="both">Daily and weekly graphs</option>
+                    </select>
                   </div>
                 )}
-                {sharing.perms.trends && (
-                  <div className="mutedSmall" style={{ marginTop: 6 }}>
-                    This week: mostly in range, one high on Saturday
+                <button
+                  className="btnPrimary caregiverSendButton"
+                  type="button"
+                  onClick={sendSharedItem}
+                  disabled={
+                    !caregivers.length ||
+                    !sharing.perms[shareType] ||
+                    sharingBusy
+                  }
+                >
+                  <Send size={15} />{" "}
+                  {sharingBusy ? "Sending..." : "Send to caregiver inbox"}
+                </button>
+                {sharingMessage && (
+                  <div className="sharingFeedback" role="status">
+                    {sharingMessage}
                   </div>
                 )}
-                {sharing.perms.reminders && (
-                  <div className="mutedSmall" style={{ marginTop: 6 }}>
-                    Insulin reminder completed at 8:02am
+              </Card>
+
+              <div className="fieldLabel" style={{ marginTop: 10 }}>
+                Shared with caregiver
+              </div>
+              <Card className="caregiverInboxPanel">
+                <div className="rowBetween">
+                  <div className="cardMainLine">
+                    <Inbox
+                      size={15}
+                      style={{ verticalAlign: -2, marginRight: 6 }}
+                    />{" "}
+                    In-app shared inbox
                   </div>
-                )}
-                {!sharing.perms.glucose &&
-                  !sharing.perms.trends &&
-                  !sharing.perms.reminders && (
-                    <div className="mutedSmall" style={{ marginTop: 6 }}>
-                      Nothing selected to share yet.
+                  <span className="sectionHeadingMeta">
+                    {sharedItems.length} sent
+                  </span>
+                </div>
+                {sharedItems.length ? (
+                  sharedItems.slice(0, 5).map((item) => (
+                    <div className="sharedItem" key={item.id}>
+                      <div className="sharedItemTop">
+                        <strong>{item.title}</strong>
+                        <span>
+                          {new Date(item.sharedAt).toLocaleDateString([], {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </span>
+                      </div>
+                      <p>{item.detail}</p>
                     </div>
-                  )}
+                  ))
+                ) : (
+                  <div className="mutedSmall caregiverEmptyInbox">
+                    Nothing shared yet. Updates you send will appear here.
+                  </div>
+                )}
               </Card>
             </>
           )}

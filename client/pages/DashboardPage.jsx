@@ -30,7 +30,8 @@ export function DashboardPage({
   profile,
   setScreen,
 }) {
-  const c = COPY[AGE_GROUPS[ageGroup].tone];
+  const selectedAgeGroup = AGE_GROUPS[ageGroup] ? ageGroup : "teen";
+  const c = COPY[AGE_GROUPS[selectedAgeGroup].tone];
   const last = readings[readings.length - 1];
   const glucoseRanges = glucoseRangesFromLimits(profile?.glucoseRanges);
   const rangeMax = glucoseRanges[3].max;

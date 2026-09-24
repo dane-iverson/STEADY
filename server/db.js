@@ -32,6 +32,7 @@ export function createUserDocument(data) {
     name: data.name || "",
     email: data.email || "",
     passwordHash: data.passwordHash || "",
+    accountType: data.accountType || "patient",
     ageGroup: data.ageGroup || "teen",
     readings: Array.isArray(data.readings) ? data.readings : [],
     reminders: Array.isArray(data.reminders)
@@ -59,6 +60,7 @@ export function createUserDocument(data) {
             on: false,
           },
         ],
+    sharedItems: Array.isArray(data.sharedItems) ? data.sharedItems : [],
     profile: {
       name: data.profile?.name || data.name || "",
       surname: data.profile?.surname || "",
@@ -82,7 +84,9 @@ export function createUserDocument(data) {
     },
     sharing: data.sharing || {
       on: false,
-      perms: { glucose: true, trends: false, reminders: false },
+      perms: { glucose: true, trends: false, reminders: false, hba1c: false },
+      caregivers: [],
+      sharedItems: [],
     },
     createdAt: data.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
