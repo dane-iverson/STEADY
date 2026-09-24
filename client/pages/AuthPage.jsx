@@ -105,7 +105,7 @@ export function AuthPage({ onAuthSuccess }) {
         throw new Error(data.message || "Authentication failed.");
       }
 
-      localStorage.setItem("steady-token", data.token);
+      sessionStorage.setItem("steady-token", data.token);
       onAuthSuccess(data.user, data.token);
     } catch (err) {
       setError(err.message || "Something went wrong.");

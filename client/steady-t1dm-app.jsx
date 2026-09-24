@@ -109,7 +109,7 @@ const defaultSharing = {
 export default function App() {
   const [screen, setScreen] = useState("welcome");
   const [token, setToken] = useState(
-    localStorage.getItem("steady-token") || "",
+    sessionStorage.getItem("steady-token") || "",
   );
   const [ageGroup, setAgeGroup] = useState("teen");
   const [name, setName] = useState("");
@@ -126,6 +126,10 @@ export default function App() {
   const [sharedItems, setSharedItems] = useState([]);
 
   useEffect(() => {
+    localStorage.removeItem("steady-token");
+  }, []);
+
+  useEffect(() => {
     if (!token) return;
 
     async function loadProfile() {
@@ -135,7 +139,7 @@ export default function App() {
         });
 
         if (!response.ok) {
-          localStorage.removeItem("steady-token");
+          sessionStorage.removeItem("steady-token");
           setToken("");
           setScreen("welcome");
           return;
@@ -251,7 +255,7 @@ export default function App() {
   }
 
   function handleAuthSuccess(user, authToken) {
-    localStorage.setItem("steady-token", authToken);
+    sessionStorage.setItem("steady-token", authToken);
     setToken(authToken);
     hydrateFromUser(user);
     setScreen(
@@ -273,7 +277,7 @@ export default function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("steady-token");
+    sessionStorage.removeItem("steady-token");
     setToken("");
     resetUserState();
     setScreen("welcome");
