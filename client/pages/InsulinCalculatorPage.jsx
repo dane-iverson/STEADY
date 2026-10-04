@@ -2,29 +2,37 @@ import React, { useState } from "react";
 import {
   AlertTriangle,
   Calculator,
+  ChevronDown,
   ChevronLeft,
   Lock,
   Save,
+  ShieldCheck,
+  Utensils,
 } from "lucide-react";
 import { Card } from "../components/Card";
 import {
   DEFAULT_INSULIN_SETTINGS,
   calculateInsulinDose,
+  estimateInsulinOnBoard,
 } from "../utils/insulin";
 
 const emptyInputs = {
   glucose: "",
   carbs: "",
-  insulinOnBoard: "0",
+  lastDoseUnits: "",
+  lastDoseHoursAgo: "",
   exercise: "no",
   sick: false,
-  ketones: "none",
+  ketones: "unchecked",
 };
+
+const FRESH_READING_MINUTES = 15;
 
 export function InsulinCalculatorPage({
   settings,
   setSettings,
   ageGroup,
+  latestReading,
   onBack,
   onEmergency,
 }) {
@@ -32,6 +40,19 @@ export function InsulinCalculatorPage({
   const [settingsOpen, setSettingsOpen] = useState(!settings?.carbRatio);
   const [result, setResult] = useState(null);
   const activeSettings = { ...DEFAULT_INSULIN_SETTINGS, ...(settings || {}) };
+  const estimatedActive = estimateInsulinOnBoard({
+    units: inputs.lastDoseUnits,
+    hoursAgo: inputs.lastDoseHoursAgo,
+    durationHours: activeSettings.insulinDuration,
+  });
+  // A stale reading is unsafe to dose from, so only offer a recent one.
+  const readingAgeMinutes = latestReading?.date
+    ? (Date.now() - new Date(latestReading.date).getTime()) / 60000
+    : Infinity;
+  const freshReading =
+    readingAgeMinutes >= 0 && readingAgeMinutes <= FRESH_READING_MINUTES
+      ? latestReading
+      : null;
 
   function updateInput(key, value) {
     setInputs((current) => ({ ...current, [key]: value }));
@@ -44,7 +65,13 @@ export function InsulinCalculatorPage({
   }
 
   function calculate() {
-    setResult(calculateInsulinDose({ ...inputs, settings: activeSettings }));
+    setResult(
+      calculateInsulinDose({
+        ...inputs,
+        insulinOnBoard: estimatedActive,
+        settings: activeSettings,
+      }),
+    );
   }
 
   const isYoungUser = ageGroup === "child" || ageGroup === "teen";
@@ -81,8 +108,13 @@ export function InsulinCalculatorPage({
         onToggle={(event) => setSettingsOpen(event.currentTarget.open)}
       >
         <summary>
-          <Lock size={15} /> Personal settings{" "}
-          <span>{activeSettings.carbRatio ? "Configured" : "Needs setup"}</span>
+          <Lock size={15} /> Personal settings
+          <span
+            className={`calculatorStatus calculatorStatus-${activeSettings.carbRatio ? "ok" : "warn"}`}
+          >
+            {activeSettings.carbRatio ? "Configured" : "Needs setup"}
+          </span>
+          <ChevronDown size={16} className="calculatorChevron" />
         </summary>
         <p className="mutedSmall">
           These values should come from your prescription or care team. Steady
@@ -211,6 +243,23 @@ export function InsulinCalculatorPage({
               }
             />
           </div>
+          <div>
+            <label className="fieldLabel" htmlFor="insulin-duration">
+              Insulin action time (hours)
+            </label>
+            <select
+              id="insulin-duration"
+              className="textInput"
+              value={activeSettings.insulinDuration}
+              onChange={(event) =>
+                updateSetting("insulinDuration", event.target.value)
+              }
+            >
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
         </div>
         <button
           className="btnGhost calculatorSaveSettings"
@@ -224,51 +273,97 @@ export function InsulinCalculatorPage({
       <Card className="calculatorInputs">
         <div className="sectionKicker">TODAY'S CALCULATION</div>
         <h3 className="calculatorSectionTitle">What is happening now?</h3>
-        <label className="fieldLabel" htmlFor="calculator-glucose">
-          Current glucose (mmol/L)
-        </label>
-        <input
-          id="calculator-glucose"
-          className="textInput calculatorPrimaryInput"
-          inputMode="decimal"
-          value={inputs.glucose}
-          onChange={(event) => updateInput("glucose", event.target.value)}
-          placeholder="e.g. 6.8"
-        />
-        <label
-          className="fieldLabel calculatorFieldSpacing"
-          htmlFor="calculator-carbs"
-        >
-          Carbohydrates (g)
-        </label>
-        <input
-          id="calculator-carbs"
-          className="textInput"
-          inputMode="decimal"
-          value={inputs.carbs}
-          onChange={(event) => updateInput("carbs", event.target.value)}
-          placeholder="e.g. 60"
-        />
-        <label
-          className="fieldLabel calculatorFieldSpacing"
-          htmlFor="calculator-iob"
-        >
-          Rapid-acting insulin already active (units)
-        </label>
-        <input
-          id="calculator-iob"
-          className="textInput"
-          inputMode="decimal"
-          value={inputs.insulinOnBoard}
-          onChange={(event) =>
-            updateInput("insulinOnBoard", event.target.value)
-          }
-          placeholder="0 if none"
-        />
-
-        <div className="calculatorFieldSpacing fieldLabel">
-          Exercise planned soon?
+        <div className="calculatorGroupLabel">
+          <Utensils size={14} /> Meal and glucose
         </div>
+        <div className="calculatorPair">
+          <div>
+            <label className="fieldLabel" htmlFor="calculator-glucose">
+              Glucose (mmol/L)
+            </label>
+            <input
+              id="calculator-glucose"
+              className="textInput calculatorPrimaryInput"
+              inputMode="decimal"
+              value={inputs.glucose}
+              onChange={(event) => updateInput("glucose", event.target.value)}
+              placeholder="6.8"
+            />
+          </div>
+          <div>
+            <label className="fieldLabel" htmlFor="calculator-carbs">
+              Carbs (g)
+            </label>
+            <input
+              id="calculator-carbs"
+              className="textInput calculatorPrimaryInput"
+              inputMode="decimal"
+              value={inputs.carbs}
+              onChange={(event) => updateInput("carbs", event.target.value)}
+              placeholder="60"
+            />
+          </div>
+        </div>
+        {freshReading && (
+          <button
+            type="button"
+            className="calculatorUseReading"
+            onClick={() =>
+              updateInput("glucose", String(Number(freshReading.v)))
+            }
+          >
+            Use the reading you just logged: {Number(freshReading.v).toFixed(1)}{" "}
+            mmol/L
+          </button>
+        )}
+        <div className="calculatorFieldSpacing fieldLabel">
+          Rapid-acting insulin in the last {activeSettings.insulinDuration}{" "}
+          hours? <span className="fieldOptional">optional</span>
+        </div>
+        <div className="calculatorPair">
+          <div>
+            <label className="fieldLabel" htmlFor="calculator-last-dose">
+              Last dose (units)
+            </label>
+            <input
+              id="calculator-last-dose"
+              className="textInput"
+              inputMode="decimal"
+              value={inputs.lastDoseUnits}
+              onChange={(event) =>
+                updateInput("lastDoseUnits", event.target.value)
+              }
+              placeholder="None"
+            />
+          </div>
+          <div>
+            <label className="fieldLabel" htmlFor="calculator-last-hours">
+              Hours ago
+            </label>
+            <input
+              id="calculator-last-hours"
+              className="textInput"
+              inputMode="decimal"
+              value={inputs.lastDoseHoursAgo}
+              onChange={(event) =>
+                updateInput("lastDoseHoursAgo", event.target.value)
+              }
+              placeholder="e.g. 1.5"
+            />
+          </div>
+        </div>
+        {estimatedActive > 0 && (
+          <div className="inputHint">
+            About {estimatedActive.toFixed(1)} units still active. Steady
+            estimates this with a straight-line fall over{" "}
+            {activeSettings.insulinDuration} hours.
+          </div>
+        )}
+        <div className="calculatorDivider" />
+        <div className="calculatorGroupLabel">
+          <ShieldCheck size={14} /> Safety checks
+        </div>
+        <div className="fieldLabel">Exercise planned soon?</div>
         <div className="chipRow">
           <button
             type="button"
@@ -312,10 +407,11 @@ export function InsulinCalculatorPage({
           value={inputs.ketones}
           onChange={(event) => updateInput("ketones", event.target.value)}
         >
-          <option value="none">Not checked / none known</option>
-          <option value="trace">Trace or small</option>
-          <option value="moderate">Moderate</option>
-          <option value="high">High</option>
+          <option value="unchecked">Not checked</option>
+          <option value="none">Negative (blood below 0.6 mmol/L)</option>
+          <option value="trace">Trace or small (blood 0.6–1.4)</option>
+          <option value="moderate">Moderate (blood 1.5–2.9)</option>
+          <option value="high">Large (blood 3.0 or more)</option>
         </select>
       </Card>
 
@@ -324,15 +420,17 @@ export function InsulinCalculatorPage({
         type="button"
         onClick={calculate}
       >
-        Check calculation
+        <Calculator size={16} /> Check calculation
       </button>
 
       {result?.status === "ready" && (
         <Card className="calculatorResult">
-          <div className="sectionKicker">CHECK AGAINST YOUR PLAN</div>
-          <h3 className="calculatorResultTitle">Suggested mealtime dose</h3>
-          <div className="calculatorDose">
-            {result.totalDose.toFixed(1)} <span>units</span>
+          <div className="calculatorResultHero">
+            <div className="sectionKicker">CHECK AGAINST YOUR PLAN</div>
+            <h3 className="calculatorResultTitle">Suggested mealtime dose</h3>
+            <div className="calculatorDose">
+              {result.totalDose.toFixed(1)} <span>units</span>
+            </div>
           </div>
           <div className="calculatorBreakdown">
             <div>
@@ -341,13 +439,21 @@ export function InsulinCalculatorPage({
             </div>
             <div>
               <span>Correction</span>
-              <strong>{result.correctionDose.toFixed(1)} units</strong>
+              <strong>
+                {result.correctionDose < 0 ? "−" : ""}
+                {Math.abs(result.correctionDose).toFixed(1)} units
+              </strong>
             </div>
             <div>
               <span>Insulin active</span>
               <strong>−{result.insulinOnBoard.toFixed(1)} units</strong>
             </div>
           </div>
+          {result.warnings.map((warning) => (
+            <div className="calculatorGuidance" key={warning}>
+              {warning}
+            </div>
+          ))}
           {result.capped && (
             <div className="calculatorGuidance">
               The result reached your configured maximum bolus. Confirm this

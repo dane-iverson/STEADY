@@ -2,6 +2,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createUserDocument, memoryUsers } from "../db.js";
+import { jwtSecret } from "./auth.js";
 
 const router = express.Router();
 
@@ -71,10 +72,7 @@ function requireAuth(req, res, next) {
 
   try {
     const token = header.split(" ")[1];
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "steady-dev-secret",
-    );
+    const payload = jwt.verify(token, jwtSecret());
     req.userId = payload.userId;
     next();
   } catch (error) {

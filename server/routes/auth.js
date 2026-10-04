@@ -34,8 +34,16 @@ function ageGroupFromDateOfBirth(dateOfBirth) {
   return "young_adult";
 }
 
+export function jwtSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET must be set in production.");
+  }
+  return "steady-dev-secret";
+}
+
 function createToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || "steady-dev-secret", {
+  return jwt.sign({ userId }, jwtSecret(), {
     expiresIn: "7d",
   });
 }
@@ -119,29 +127,7 @@ router.post("/signup", async (req, res) => {
       ageGroup: ageGroup || "teen",
       accountType: isCaregiver ? "caregiver" : "patient",
       readings: [],
-      reminders: [
-        {
-          id: 1,
-          title: "Morning glucose check",
-          kind: "Glucose check",
-          when: "Every day, 7:00am",
-          on: true,
-        },
-        {
-          id: 2,
-          title: "Lunchtime insulin",
-          kind: "Insulin",
-          when: "Every day, 12:30pm",
-          on: true,
-        },
-        {
-          id: 3,
-          title: "Endocrinologist appointment",
-          kind: "Appointment",
-          when: "Thu 24 Sep, 3:00pm",
-          on: false,
-        },
-      ],
+      reminders: [],
       profile: {
         name: name.trim(),
         surname: profile?.surname,

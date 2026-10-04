@@ -286,11 +286,14 @@ export function AuthPage({ onAuthSuccess }) {
 
         <label
           className="fieldLabel"
+          htmlFor="auth-email"
           style={{ marginTop: mode === "signup" ? 12 : 0 }}
         >
           Email
         </label>
         <input
+          id="auth-email"
+          autoComplete="email"
           className="textInput"
           value={form.email}
           type="email"
@@ -298,10 +301,16 @@ export function AuthPage({ onAuthSuccess }) {
           placeholder="you@example.com"
         />
 
-        <label className="fieldLabel" style={{ marginTop: 12 }}>
+        <label
+          className="fieldLabel"
+          htmlFor="auth-password"
+          style={{ marginTop: 12 }}
+        >
           Password
         </label>
         <input
+          id="auth-password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           className="textInput"
           type="password"
           value={form.password}
@@ -313,10 +322,16 @@ export function AuthPage({ onAuthSuccess }) {
 
         {mode === "signup" && (
           <>
-            <label className="fieldLabel" style={{ marginTop: 12 }}>
+            <label
+              className="fieldLabel"
+              htmlFor="auth-confirm"
+              style={{ marginTop: 12 }}
+            >
               Confirm password
             </label>
             <input
+              id="auth-confirm"
+              autoComplete="new-password"
               className="textInput"
               type="password"
               value={form.confirmPassword}

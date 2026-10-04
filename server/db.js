@@ -35,31 +35,7 @@ export function createUserDocument(data) {
     accountType: data.accountType || "patient",
     ageGroup: data.ageGroup || "teen",
     readings: Array.isArray(data.readings) ? data.readings : [],
-    reminders: Array.isArray(data.reminders)
-      ? data.reminders
-      : [
-          {
-            id: 1,
-            title: "Morning glucose check",
-            kind: "Glucose check",
-            when: "Every day, 7:00am",
-            on: true,
-          },
-          {
-            id: 2,
-            title: "Lunchtime insulin",
-            kind: "Insulin",
-            when: "Every day, 12:30pm",
-            on: true,
-          },
-          {
-            id: 3,
-            title: "Endocrinologist appointment",
-            kind: "Appointment",
-            when: "Thu 24 Sep, 3:00pm",
-            on: false,
-          },
-        ],
+    reminders: Array.isArray(data.reminders) ? data.reminders : [],
     sharedItems: Array.isArray(data.sharedItems) ? data.sharedItems : [],
     profile: {
       name: data.profile?.name || data.name || "",

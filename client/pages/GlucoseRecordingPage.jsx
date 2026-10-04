@@ -41,7 +41,7 @@ export function GlucoseRecordingPage({
   }, [editingReading]);
 
   const num = Number(value);
-  const valid = value !== "" && Number.isFinite(num) && num >= 0 && num <= 30;
+  const valid = value !== "" && Number.isFinite(num) && num > 0 && num <= 33.3;
   const status = valid ? statusOf(num, context, profile?.glucoseRanges) : null;
 
   function resetEntryForm() {

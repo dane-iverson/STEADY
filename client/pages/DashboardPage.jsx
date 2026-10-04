@@ -79,12 +79,6 @@ export function DashboardPage({
       desc: "See your patterns",
     },
     {
-      id: "insulinCalculator",
-      label: "Insulin calculator",
-      icon: Calculator,
-      desc: "Check a meal dose safely",
-    },
-    {
       id: "reminders",
       label: "Reminders",
       icon: Bell,
@@ -108,6 +102,12 @@ export function DashboardPage({
       icon: User,
       desc: "Your details & contacts",
     },
+    {
+      id: "insulinCalculator",
+      label: "Insulin calculator",
+      icon: Calculator,
+      desc: "Meal and correction doses, safety-checked",
+    },
   ];
 
   return (
@@ -120,7 +120,7 @@ export function DashboardPage({
           </h2>
           <p className="screenSub">{c.dashSubtitle}</p>
         </div>
-        <div className="careBadge" aria-label="Care plan on track">
+        <div className="careBadge">
           <span className="careBadgeDot" />
           <span>Care plan</span>
         </div>

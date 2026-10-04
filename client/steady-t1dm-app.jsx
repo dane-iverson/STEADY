@@ -25,22 +25,7 @@ const API_BASE =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
 
-const defaultReadings = [
-  {
-    id: "seed-1",
-    v: 5.4,
-    time: "Today, 7:02am",
-    context: "Before meal",
-    date: new Date().toISOString(),
-  },
-  {
-    id: "seed-2",
-    v: 8.9,
-    time: "Today, 10:15am",
-    context: "After meal",
-    date: new Date().toISOString(),
-  },
-];
+const defaultReadings = [];
 
 const morning = new Date();
 morning.setHours(7, 0, 0, 0);
@@ -169,7 +154,7 @@ export default function App() {
   function hydrateFromUser(user) {
     setName(user.name || "");
     setAgeGroup(user.ageGroup || "teen");
-    setReadings(user.readings?.length ? user.readings : defaultReadings);
+    setReadings(user.readings || defaultReadings);
     setReminders(user.reminders?.length ? user.reminders : defaultReminders);
     setProfile(user.profile || defaultProfile);
     setSharing(user.sharing || defaultSharing);
@@ -495,6 +480,7 @@ export default function App() {
           {routedScreen === "insulinCalculator" && (
             <InsulinCalculatorPage
               ageGroup={ageGroup}
+              latestReading={readings[readings.length - 1]}
               settings={insulinSettings}
               setSettings={(nextSettings) => {
                 setInsulinSettings(nextSettings);
