@@ -163,3 +163,43 @@ export function getReminderStatus(reminder, now = new Date()) {
     completion: null,
   };
 }
+
+export const COMPLETION_SORT_OPTIONS = [
+  ["newest", "Newest first"],
+  ["oldest", "Oldest first"],
+  ["reminder", "By reminder name"],
+  ["late", "Completed late first"],
+];
+
+export function collectCompletions(
+  reminders = [],
+  { dateRange = null, reminderId = "all", sortBy = "newest" } = {},
+) {
+  const entries = reminders
+    .filter((reminder) => reminderId === "all" || String(reminder.id) === String(reminderId))
+    .flatMap((reminder) =>
+      (reminder.completionHistory || []).map((entry) => ({
+        reminderId: reminder.id,
+        reminderTitle: reminder.title,
+        kind: reminder.kind === "Other" ? reminder.otherKind || "Other" : reminder.kind,
+        what: entry.what,
+        notes: entry.notes || "",
+        completedAt: entry.completedAt,
+        occurrenceAt: entry.occurrenceAt,
+        onTime: new Date(entry.completedAt) <= new Date(entry.occurrenceAt),
+      })),
+    )
+    .filter((entry) => {
+      const completed = new Date(entry.completedAt);
+      if (Number.isNaN(completed.getTime())) return false;
+      return !dateRange || (completed >= dateRange.start && completed <= dateRange.end);
+    });
+
+  const byDate = (a, b) => new Date(b.completedAt) - new Date(a.completedAt);
+  return entries.sort((a, b) => {
+    if (sortBy === "oldest") return -byDate(a, b);
+    if (sortBy === "reminder") return a.reminderTitle.localeCompare(b.reminderTitle) || byDate(a, b);
+    if (sortBy === "late") return Number(a.onTime) - Number(b.onTime) || byDate(a, b);
+    return byDate(a, b);
+  });
+}

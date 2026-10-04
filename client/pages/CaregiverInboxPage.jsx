@@ -1,6 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { Inbox, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Droplet,
+  Inbox,
+  LogOut,
+  Percent,
+  RefreshCw,
+  TrendingUp,
+} from "lucide-react";
 import { Card } from "../components/Card";
+
+const PREVIEW_COUNT = 5;
+const PAGE_SIZE = 10;
+
+const TYPE_META = {
+  glucose: { label: "Glucose", Icon: Droplet },
+  trends: { label: "Trends", Icon: TrendingUp },
+  reminders: { label: "Reminders", Icon: Bell },
+  hba1c: { label: "HbA1c", Icon: Percent },
+};
 
 function TrendGraph({ points = [], title, glucoseRanges }) {
   if (!points.length) return null;
@@ -110,6 +130,9 @@ export function CaregiverInboxPage({
   const [refreshMessage, setRefreshMessage] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterType, setFilterType] = useState("all");
+  const [expanded, setExpanded] = useState(false);
+  const [page, setPage] = useState(0);
+  const listRef = useRef(null);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -141,9 +164,30 @@ export function CaregiverInboxPage({
         : secondDate - firstDate;
     });
 
+  const total = visibleItems.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageItems = expanded
+    ? visibleItems.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+    : visibleItems.slice(0, PREVIEW_COUNT);
+  const rangeStart = safePage * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(total, (safePage + 1) * PAGE_SIZE);
+
+  function resetPaging() {
+    setExpanded(false);
+    setPage(0);
+  }
+
+  function goToPage(next) {
+    setPage(next);
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const displayName = name || email || "Caregiver";
+
   return (
     <div className="screen caregiverInboxScreen">
-      <div className="caregiverWelcomeHeader">
+      <div className="caregiverHeader">
         <div>
           <span className="sectionKicker">CAREGIVER ACCOUNT</span>
           <h2 className="screenTitle">Shared with me</h2>
@@ -151,17 +195,23 @@ export function CaregiverInboxPage({
             Health information shared with you through Steady.
           </p>
         </div>
-        <div className="trendsHeaderIcon">
-          <Inbox size={22} />
-        </div>
+        <button
+          className="caregiverLogout"
+          type="button"
+          onClick={onLogout}
+          aria-label="Log out"
+          title="Log out"
+        >
+          <LogOut size={18} />
+        </button>
       </div>
 
       <div className="caregiverAccountStrip">
-        <ShieldCheck size={16} />
-        <span>
-          Signed in as <strong>{name || email}</strong>. This is a read-only
-          view.
-        </span>
+        <div className="caregiverAvatar">{displayName.charAt(0)}</div>
+        <div>
+          <strong>{displayName}</strong>
+          <span>Read-only access to updates shared with you</span>
+        </div>
       </div>
 
       <div className="sectionHeading caregiverInboxHeading">
@@ -189,11 +239,14 @@ export function CaregiverInboxPage({
         </div>
       )}
 
-      <div className="caregiverInboxControls">
+      <div className="caregiverInboxControls" ref={listRef}>
         <select
           className="textInput"
           value={filterType}
-          onChange={(event) => setFilterType(event.target.value)}
+          onChange={(event) => {
+            setFilterType(event.target.value);
+            resetPaging();
+          }}
           aria-label="Filter shared items"
         >
           <option value="all">All shared data</option>
@@ -205,7 +258,10 @@ export function CaregiverInboxPage({
         <select
           className="textInput"
           value={sortBy}
-          onChange={(event) => setSortBy(event.target.value)}
+          onChange={(event) => {
+            setSortBy(event.target.value);
+            resetPaging();
+          }}
           aria-label="Sort shared items"
         >
           <option value="newest">Newest first</option>
@@ -214,135 +270,184 @@ export function CaregiverInboxPage({
       </div>
 
       {visibleItems.length ? (
-        visibleItems.map((item) => (
-          <Card className="caregiverSharedCard" key={item.id}>
-            <div className="rowBetween">
-              <div className="cardMainLine">{item.title}</div>
-              <span className="sharedItemUnread">{item.type || "Update"}</span>
-            </div>
-            <div className="mutedSmall">
-              {item.senderName ? `${item.senderName} · ` : ""}Shared{" "}
-              {new Date(item.sharedAt).toLocaleString([], {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            </div>
-            <p className="caregiverSharedDetail">{item.detail}</p>
-            {item.data && (
-              <div className="caregiverDataGrid">
-                {item.type === "glucose" && (
-                  <>
-                    <div>
-                      <span>Reading</span>
-                      <strong>
-                        {item.data.value ?? "--"} {item.data.unit}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Context</span>
-                      <strong>{item.data.context}</strong>
-                    </div>
-                    <div>
-                      <span>Status</span>
-                      <strong>{item.data.status || "Not classified"}</strong>
-                    </div>
-                    <div>
-                      <span>Recorded</span>
-                      <strong>
-                        {item.data.readingAt
-                          ? new Date(item.data.readingAt).toLocaleString([], {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : "Not provided"}
-                      </strong>
-                    </div>
-                  </>
-                )}
-                {item.type === "trends" && (
-                  <>
-                    <div>
-                      <span>Readings</span>
-                      <strong>{item.data.readingCount}</strong>
-                    </div>
-                    <div>
-                      <span>Average</span>
-                      <strong>
-                        {item.data.averageGlucose == null
-                          ? "--"
-                          : `${Number(item.data.averageGlucose).toFixed(1)} mmol/L`}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Period</span>
-                      <strong>
-                        {item.data.rangeLabel || "Selected period"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Graphs</span>
-                      <strong>
-                        {item.data.chartMode === "both"
-                          ? "Daily and weekly"
-                          : item.data.chartMode}
-                      </strong>
-                    </div>
-                    {(item.data.chartMode === "daily" ||
-                      item.data.chartMode === "both") && (
-                      <TrendGraph
-                        points={item.data.dailyPoints}
-                        title="Daily graph"
-                        glucoseRanges={item.data.glucoseRanges}
-                      />
-                    )}
-                    {(item.data.chartMode === "weekly" ||
-                      item.data.chartMode === "both") && (
-                      <TrendGraph
-                        points={item.data.weeklyPoints}
-                        title="Weekly graph"
-                        glucoseRanges={item.data.glucoseRanges}
-                      />
-                    )}
-                  </>
-                )}
-                {item.type === "reminders" && (
-                  <>
-                    <div>
-                      <span>Reminder</span>
-                      <strong>
-                        {item.data.reminderTitle || "Not provided"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Completed items</span>
-                      <strong>{item.data.completedCount}</strong>
-                    </div>
-                    <div>
-                      <span>Active reminders</span>
-                      <strong>{item.data.activeCount}</strong>
-                    </div>
-                  </>
-                )}
-                {item.type === "hba1c" && (
-                  <>
-                    <div>
-                      <span>Result</span>
-                      <strong>
-                        {item.data.value
-                          ? `${item.data.value}${item.data.unit}`
-                          : "Not provided"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>Test date</span>
-                      <strong>{item.data.testedAt || "Not provided"}</strong>
-                    </div>
-                  </>
-                )}
+        pageItems.map((item) => {
+          const meta = TYPE_META[item.type];
+          return (
+            <Card
+              className={`caregiverSharedCard caregiverSharedCard-${item.type}`}
+              key={item.id}
+            >
+              <div className="rowBetween">
+                <div className="cardMainLine">{item.title}</div>
+                <span className="caregiverTypeBadge">
+                  {meta && <meta.Icon size={12} />}
+                  {meta?.label || "Update"}
+                </span>
               </div>
-            )}
-          </Card>
-        ))
+              <div className="mutedSmall">
+                {item.senderName ? `${item.senderName} · ` : ""}Shared{" "}
+                {new Date(item.sharedAt).toLocaleString([], {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </div>
+              <p className="caregiverSharedDetail">{item.detail}</p>
+              {item.data && (
+                <div className="caregiverDataGrid">
+                  {item.type === "glucose" && (
+                    <>
+                      <div>
+                        <span>Reading</span>
+                        <strong>
+                          {item.data.value ?? "--"} {item.data.unit}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Context</span>
+                        <strong>{item.data.context}</strong>
+                      </div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{item.data.status || "Not classified"}</strong>
+                      </div>
+                      <div>
+                        <span>Recorded</span>
+                        <strong>
+                          {item.data.readingAt
+                            ? new Date(item.data.readingAt).toLocaleString([], {
+                                dateStyle: "medium",
+                                timeStyle: "short",
+                              })
+                            : "Not provided"}
+                        </strong>
+                      </div>
+                    </>
+                  )}
+                  {item.type === "trends" && (
+                    <>
+                      <div>
+                        <span>Readings</span>
+                        <strong>{item.data.readingCount}</strong>
+                      </div>
+                      <div>
+                        <span>Average</span>
+                        <strong>
+                          {item.data.averageGlucose == null
+                            ? "--"
+                            : `${Number(item.data.averageGlucose).toFixed(1)} mmol/L`}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Period</span>
+                        <strong>
+                          {item.data.rangeLabel || "Selected period"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Graphs</span>
+                        <strong>
+                          {item.data.chartMode === "both"
+                            ? "Daily and weekly"
+                            : item.data.chartMode}
+                        </strong>
+                      </div>
+                      {(item.data.chartMode === "daily" ||
+                        item.data.chartMode === "both") && (
+                        <TrendGraph
+                          points={item.data.dailyPoints}
+                          title="Daily graph"
+                          glucoseRanges={item.data.glucoseRanges}
+                        />
+                      )}
+                      {(item.data.chartMode === "weekly" ||
+                        item.data.chartMode === "both") && (
+                        <TrendGraph
+                          points={item.data.weeklyPoints}
+                          title="Weekly graph"
+                          glucoseRanges={item.data.glucoseRanges}
+                        />
+                      )}
+                    </>
+                  )}
+                  {item.type === "reminders" && (
+                    <>
+                      <div>
+                        <span>Period</span>
+                        <strong>
+                          {item.data.rangeLabel || "Not specified"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Reminder</span>
+                        <strong>
+                          {item.data.reminderTitle || "All reminders"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Completed</span>
+                        <strong>{item.data.completedCount}</strong>
+                      </div>
+                      {item.data.onTimeCount != null && (
+                        <div>
+                          <span>On time</span>
+                          <strong>
+                            {item.data.onTimeCount} of{" "}
+                            {item.data.completedCount}
+                          </strong>
+                        </div>
+                      )}
+                      {(item.data.completions || []).length > 0 && (
+                        <div className="caregiverCompletionList">
+                          {item.data.completions.map((entry, index) => (
+                            <div
+                              className="caregiverCompletion"
+                              key={`${entry.completedAt}-${index}`}
+                            >
+                              <div className="sharedItemTop">
+                                <strong>{entry.reminderTitle}</strong>
+                                <span>
+                                  {new Date(entry.completedAt).toLocaleString(
+                                    [],
+                                    {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                    },
+                                  )}
+                                </span>
+                              </div>
+                              <p>
+                                {entry.what}
+                                {" · "}
+                                {entry.onTime ? "On time" : "Completed late"}
+                              </p>
+                              {entry.notes && <p>Note: {entry.notes}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {item.type === "hba1c" && (
+                    <>
+                      <div>
+                        <span>Result</span>
+                        <strong>
+                          {item.data.value
+                            ? `${item.data.value}${item.data.unit}`
+                            : "Not provided"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>Test date</span>
+                        <strong>{item.data.testedAt || "Not provided"}</strong>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })
       ) : (
         <Card className="caregiverEmptyCard">
           <Inbox size={24} />
@@ -354,10 +459,53 @@ export function CaregiverInboxPage({
         </Card>
       )}
 
-      <div style={{ flex: 1 }} />
-      <button className="btnGhost" type="button" onClick={onLogout}>
-        <LogOut size={15} /> Log out
-      </button>
+      {total > PREVIEW_COUNT && (
+        <div className="caregiverPager">
+          {!expanded ? (
+            <button
+              className="btnGhost caregiverLoadMore"
+              type="button"
+              onClick={() => setExpanded(true)}
+            >
+              Load more ({total - PREVIEW_COUNT} more)
+            </button>
+          ) : (
+            <>
+              <div className="caregiverPagerStatus">
+                Showing {rangeStart}–{rangeEnd} of {total}
+              </div>
+              <div className="caregiverPagerControls">
+                <button
+                  className="btnGhost"
+                  type="button"
+                  disabled={safePage === 0}
+                  onClick={() => goToPage(safePage - 1)}
+                >
+                  <ChevronLeft size={15} /> Previous
+                </button>
+                <span>
+                  Page {safePage + 1} of {totalPages}
+                </span>
+                <button
+                  className="btnGhost"
+                  type="button"
+                  disabled={safePage >= totalPages - 1}
+                  onClick={() => goToPage(safePage + 1)}
+                >
+                  Next <ChevronRight size={15} />
+                </button>
+              </div>
+              <button
+                className="caregiverShowLess"
+                type="button"
+                onClick={resetPaging}
+              >
+                Show fewer
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

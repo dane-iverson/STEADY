@@ -721,3 +721,41 @@ body {
   .phone { width: 100%; max-width: 100%; height: 100dvh; max-height: none; border: 0; border-radius: 0; }
   .topbar { padding-left: calc(14px + env(safe-area-inset-left, 0px)); padding-right: calc(14px + env(safe-area-inset-right, 0px)); }
 }
+.caregiverCompletionList { grid-column: 1 / -1; display: grid; gap: 7px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border); }
+.caregiverCompletion { padding: 8px 10px; border-left: 3px solid var(--brand-tint); background: var(--surface-muted); }
+.caregiverCompletion p { margin: 4px 0 0; color: var(--ink-soft); font-size: 11px; line-height: 1.4; }
+
+/* Caregiver inbox */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .8s linear infinite; }
+.caregiverInboxScreen { padding-bottom: 32px; }
+.caregiverHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.caregiverHeader .screenSub { max-width: 250px; }
+.caregiverLogout { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink-soft); cursor: pointer; transition: color .15s ease, background .15s ease, border-color .15s ease; }
+.caregiverLogout:hover { color: #b94747; border-color: #f0caca; background: #fdecec; }
+.caregiverLogout:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.caregiverAccountStrip { display: flex; align-items: center; gap: 11px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: linear-gradient(120deg, var(--brand-tint), var(--surface-muted)); }
+.caregiverAccountStrip .caregiverAvatar { width: 38px; height: 38px; background: var(--brand); color: #fff; font: 800 15px/1 'Manrope', sans-serif; text-transform: uppercase; }
+.caregiverAccountStrip strong, .caregiverAccountStrip span { display: block; }
+.caregiverAccountStrip strong { color: var(--brand-dark); font-size: 13.5px; }
+.caregiverAccountStrip span { margin-top: 2px; color: var(--ink-soft); font-size: 11px; }
+.caregiverInboxHeading { margin-top: 2px; }
+.caregiverInboxHeading h3 { margin: 3px 0 0; font: 700 16px/1.2 'Manrope', sans-serif; }
+.caregiverSharedCard { position: relative; overflow: hidden; padding-left: 20px; margin-bottom: 12px; }
+.caregiverSharedCard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--brand); }
+.caregiverSharedCard-glucose::before { background: #3e7cb8; }
+.caregiverSharedCard-trends::before { background: #16758e; }
+.caregiverSharedCard-reminders::before { background: #d16b4f; }
+.caregiverSharedCard-hba1c::before { background: #7a5bb5; }
+.caregiverTypeBadge { display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 4px 9px; border-radius: 999px; background: var(--brand-tint); color: var(--brand-dark); font-size: 10px; font-weight: 700; }
+.caregiverSharedDetail { margin: 9px 0 0; color: var(--ink); font-size: 12.5px; line-height: 1.5; }
+.caregiverEmptyCard { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 20px; text-align: center; color: var(--brand); }
+.caregiverEmptyCard p { max-width: 240px; margin: 0; line-height: 1.5; }
+.caregiverPager { display: grid; gap: 10px; margin-top: 4px; }
+.caregiverLoadMore { margin-top: 0; }
+.caregiverPagerStatus { color: var(--ink-soft); font-size: 11px; text-align: center; }
+.caregiverPagerControls { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.caregiverPagerControls span { color: var(--ink-soft); font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.caregiverPagerControls .btnGhost { flex: 1; width: auto; margin-top: 0; padding: 10px 8px; font-size: 12.5px; }
+.caregiverShowLess { justify-self: center; border: 0; background: none; padding: 4px 8px; color: var(--brand-dark); font: 600 11.5px/1.2 inherit; cursor: pointer; }
+.caregiverShowLess:hover { color: var(--brand); text-decoration: underline; }

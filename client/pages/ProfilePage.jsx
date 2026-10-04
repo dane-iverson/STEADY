@@ -20,6 +20,10 @@ import {
   readingsForDateRange,
   statusOf,
 } from "../utils/diabetes";
+import {
+  COMPLETION_SORT_OPTIONS,
+  collectCompletions,
+} from "../utils/reminders";
 
 const TREND_SHARE_RANGES = [
   "Last 7 days",
@@ -99,6 +103,11 @@ export function ProfilePage({
   const [trendShareStart, setTrendShareStart] = useState("");
   const [trendShareEnd, setTrendShareEnd] = useState("");
   const [trendShareMode, setTrendShareMode] = useState("both");
+  const [reminderShareRange, setReminderShareRange] = useState("Last 7 days");
+  const [reminderShareStart, setReminderShareStart] = useState("");
+  const [reminderShareEnd, setReminderShareEnd] = useState("");
+  const [reminderShareSort, setReminderShareSort] = useState("newest");
+  const [reminderShareId, setReminderShareId] = useState("all");
   const [sharingMessage, setSharingMessage] = useState("");
   const [sharingBusy, setSharingBusy] = useState(false);
 
@@ -150,6 +159,30 @@ export function ProfilePage({
   const caregivers = sharing.caregivers || [];
   const sharedItems = sharing.sharedItems || [];
 
+  const reminderDateRange =
+    reminderShareRange === "All recordings"
+      ? null
+      : getReadingDateRange(
+          reminderShareRange,
+          reminderShareStart,
+          reminderShareEnd,
+        );
+  const reminderRangeInvalid =
+    reminderShareRange === "Custom" && !reminderDateRange;
+  const sharedCompletions = reminderRangeInvalid
+    ? []
+    : collectCompletions(reminders, {
+        dateRange: reminderDateRange,
+        reminderId: reminderShareId,
+        sortBy: reminderShareSort,
+      });
+  const reminderRangeLabel =
+    reminderShareRange === "Custom"
+      ? `${reminderShareStart} to ${reminderShareEnd}`
+      : reminderShareRange;
+  const shareBlocked =
+    shareType === "reminders" && sharedCompletions.length === 0;
+
   async function addCaregiver() {
     const email = caregiverEmail.trim().toLowerCase();
     if (!email || !email.includes("@")) return;
@@ -192,7 +225,6 @@ export function ProfilePage({
   function sendSharedItem() {
     if (!caregivers.length) return;
     const latestReading = readings[readings.length - 1];
-    const latestReminder = reminders[0];
     const trendDateRange =
       trendShareRange === "All recordings"
         ? null
@@ -207,9 +239,7 @@ export function ProfilePage({
         ? `Latest reading: ${Number(latestReading.v).toFixed(1)} mmol/L (${latestReading.context || "Random"})`
         : "No glucose readings saved yet.",
       trends: `Trend report: ${trendReadings.length} readings for ${trendShareRange === "Custom" ? `${trendShareStart} to ${trendShareEnd}` : trendShareRange}.`,
-      reminders: latestReminder
-        ? `Reminder activity: ${latestReminder.title}`
-        : "No reminder activity saved yet.",
+      reminders: `${sharedCompletions.length} completed reminder${sharedCompletions.length === 1 ? "" : "s"} for ${reminderRangeLabel}.`,
       hba1c: profile.hba1c
         ? `Most recent HbA1c: ${profile.hba1c}%${profile.hba1cDate ? ` on ${profile.hba1cDate}` : ""}`
         : "No HbA1c result saved yet.",
@@ -270,12 +300,19 @@ export function ProfilePage({
               }
             : shareType === "reminders"
               ? {
-                  reminderTitle: latestReminder?.title || null,
-                  completedCount: reminders.filter(
-                    (reminder) => (reminder.completionHistory || []).length > 0,
-                  ).length,
+                  rangeLabel: reminderRangeLabel,
+                  sortBy: reminderShareSort,
+                  reminderTitle:
+                    reminderShareId === "all"
+                      ? null
+                      : reminders.find((r) => String(r.id) === reminderShareId)
+                          ?.title || null,
+                  completedCount: sharedCompletions.length,
+                  onTimeCount: sharedCompletions.filter((entry) => entry.onTime)
+                    .length,
                   activeCount: reminders.filter((reminder) => reminder.on)
                     .length,
+                  completions: sharedCompletions.slice(0, 100),
                 }
               : {
                   value: profile.hba1c || null,
@@ -1058,6 +1095,117 @@ export function ProfilePage({
                     </select>
                   </div>
                 )}
+                {shareType === "reminders" && (
+                  <div className="trendShareOptions">
+                    <label
+                      className="fieldLabel"
+                      htmlFor="share-reminder-range"
+                    >
+                      Completed during
+                    </label>
+                    <select
+                      id="share-reminder-range"
+                      className="textInput"
+                      value={reminderShareRange}
+                      onChange={(event) =>
+                        setReminderShareRange(event.target.value)
+                      }
+                    >
+                      {[
+                        "Today",
+                        "This week",
+                        "This month",
+                        ...TREND_SHARE_RANGES,
+                      ].map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                      <option value="Custom">Custom dates</option>
+                    </select>
+                    {reminderShareRange === "Custom" && (
+                      <div className="trendDateGrid">
+                        <div>
+                          <label
+                            className="fieldLabel"
+                            htmlFor="share-reminder-start"
+                          >
+                            From
+                          </label>
+                          <input
+                            id="share-reminder-start"
+                            className="textInput"
+                            type="date"
+                            value={reminderShareStart}
+                            onChange={(event) =>
+                              setReminderShareStart(event.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label
+                            className="fieldLabel"
+                            htmlFor="share-reminder-end"
+                          >
+                            To
+                          </label>
+                          <input
+                            id="share-reminder-end"
+                            className="textInput"
+                            type="date"
+                            value={reminderShareEnd}
+                            onChange={(event) =>
+                              setReminderShareEnd(event.target.value)
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <label
+                      className="fieldLabel"
+                      htmlFor="share-reminder-which"
+                    >
+                      Reminder
+                    </label>
+                    <select
+                      id="share-reminder-which"
+                      className="textInput"
+                      value={reminderShareId}
+                      onChange={(event) =>
+                        setReminderShareId(event.target.value)
+                      }
+                    >
+                      <option value="all">All reminders</option>
+                      {reminders.map((reminder) => (
+                        <option key={reminder.id} value={String(reminder.id)}>
+                          {reminder.title}
+                        </option>
+                      ))}
+                    </select>
+                    <label className="fieldLabel" htmlFor="share-reminder-sort">
+                      Sort by
+                    </label>
+                    <select
+                      id="share-reminder-sort"
+                      className="textInput"
+                      value={reminderShareSort}
+                      onChange={(event) =>
+                        setReminderShareSort(event.target.value)
+                      }
+                    >
+                      {COMPLETION_SORT_OPTIONS.map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="dateFieldHint" role="status">
+                      {reminderRangeInvalid
+                        ? "Choose a valid start and end date."
+                        : `${sharedCompletions.length} completed reminder${sharedCompletions.length === 1 ? "" : "s"} will be shared.`}
+                    </div>
+                  </div>
+                )}
                 <button
                   className="btnPrimary caregiverSendButton"
                   type="button"
@@ -1065,7 +1213,8 @@ export function ProfilePage({
                   disabled={
                     !caregivers.length ||
                     !sharing.perms[shareType] ||
-                    sharingBusy
+                    sharingBusy ||
+                    shareBlocked
                   }
                 >
                   <Send size={15} />{" "}
