@@ -1,10 +1,18 @@
 import React from "react";
-import { Bell, BookOpen, Droplet, ShieldAlert, TrendingUp } from "lucide-react";
+import {
+  Bell,
+  BookOpen,
+  Calculator,
+  Droplet,
+  ShieldAlert,
+  TrendingUp,
+} from "lucide-react";
 
 export function NavBar({ screen, setScreen }) {
   const items = [
     { id: "dashboard", label: "Today", icon: Droplet },
     { id: "trends", label: "Trends", icon: TrendingUp },
+    { id: "insulinCalculator", label: "Insulin", icon: Calculator },
     { id: "reminders", label: "Remind", icon: Bell },
     { id: "education", label: "Learn", icon: BookOpen },
     { id: "emergency", label: "Help", icon: ShieldAlert },

@@ -293,12 +293,18 @@ export function readingsForDateRange(readings = [], dateRange) {
   });
 }
 
+const PROTOTYPE_PDF_CSS = `.protoBanner { background: #b94747; color: #fff; text-align: center; font-weight: 700; font-size: 13px; padding: 9px; margin-bottom: 14px; letter-spacing: .4px; }
+    .protoMark { position: fixed; top: 42%; left: 0; right: 0; text-align: center; font-size: 64px; font-weight: 800; color: rgba(185, 71, 71, .14); transform: rotate(-24deg); pointer-events: none; z-index: 10; }`;
+const PROTOTYPE_PDF_BANNER =
+  '<div class="protoBanner">PROTOTYPE - SAMPLE DATA ONLY. NOT A REAL MEDICAL RECORD.</div><div class="protoMark">PROTOTYPE<br>SAMPLE DATA</div>';
+
 export function exportReadingsToPdf({
   readings = [],
   profile = {},
   reminders = [],
   dateRange = null,
   rangeLabel = "All recordings",
+  prototype = false,
 }) {
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) return false;
@@ -329,7 +335,7 @@ export function exportReadingsToPdf({
   const generatedAt = formatReadingStamp(new Date());
 
   printWindow.document
-    .write(`<!doctype html><html><head><title>Steady glucose report</title><style>
+    .write(`<!doctype html><html><head><title>${prototype ? "PROTOTYPE - " : ""}Steady glucose report</title><style>${prototype ? PROTOTYPE_PDF_CSS : ""}
     @page { size: A4; margin: 16mm; }
     :root { color-scheme: light; font-family: Arial, sans-serif; color: #1e2a22; }
     body { margin: 0; font-size: 11px; line-height: 1.45; }
@@ -341,7 +347,7 @@ export function exportReadingsToPdf({
     table { width: 100%; border-collapse: collapse; } th { background: #dcefea; color: #0e4c42; text-align: left; font-size: 10px; } th, td { padding: 8px 7px; border-bottom: 1px solid #d7e3df; } tr { page-break-inside: avoid; }
     .status { display: inline-block; border-radius: 12px; padding: 2px 7px; background: #e3f2ec; color: #2f9e6e; } .status-low { background: #e5eff8; color: #3e7cb8; } .status-very-low { background: #fdecec; color: #b94747; } .status-high, .status-very-high { background: #f7e9e0; color: #a6531c; } .empty { text-align: center; color: #5b675e; }
     footer { margin-top: 24px; padding-top: 9px; border-top: 1px solid #d7e3df; color: #5b675e; font-size: 9px; }
-  </style></head><body><header><div><h1>Steady</h1><p>Glucose and care record</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header>
+  </style></head><body>${prototype ? PROTOTYPE_PDF_BANNER : ""}<header><div><h1>Steady</h1><p>Glucose and care record</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header>
   <h2>Patient details</h2><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Date of birth</label><strong>${displayValue(profile.dateOfBirth)}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Height</label><strong>${displayValue(profile.height)}</strong></div><div class="detail"><label>Weight</label><strong>${displayValue(profile.weight)}</strong></div><div class="detail"><label>Gender</label><strong>${displayValue(profile.gender)}</strong></div><div class="detail"><label>Allergies</label><strong>${displayValue(profile.allergies)}</strong></div><div class="detail"><label>Other medication</label><strong>${displayValue(profile.otherMedication)}</strong></div><div class="detail"><label>Most recent HbA1c</label><strong>${displayValue(profile.hba1c ? `${profile.hba1c}%${profile.hba1cDate ? ` (${profile.hba1cDate})` : ""}` : "Not provided")}</strong></div><div class="detail"><label>Emergency contact</label><strong>${displayValue(`${profile.contactName || ""} ${profile.contactNumber || ""}`.trim())}</strong></div></div>
   <h2>Saved glucose readings (${filteredReadings.length})</h2><p>Export range: ${escapeHtml(rangeLabel)}</p><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table>
   <h2>Saved reminders</h2><table><thead><tr><th>Reminder</th><th>Type</th><th>Repeats</th><th>Status</th></tr></thead><tbody>${reminderRows}</tbody></table>
@@ -432,6 +438,7 @@ export function exportTrendsToPdf({
   exportMode = "both",
   rangeLabel = "Selected period",
   glucoseRanges = null,
+  prototype = false,
 }) {
   const printWindow = window.open("", "_blank", "width=900,height=700");
   if (!printWindow) return false;
@@ -466,9 +473,9 @@ export function exportTrendsToPdf({
   const displayValue = (value) => escapeHtml(value || "Not provided");
 
   printWindow.document
-    .write(`<!doctype html><html><head><title>Steady trends report</title><style>
+    .write(`<!doctype html><html><head><title>${prototype ? "PROTOTYPE - " : ""}Steady trends report</title><style>${prototype ? PROTOTYPE_PDF_CSS : ""}
     @page { size: A4; margin: 14mm; } :root { color-scheme: light; font-family: Arial, sans-serif; color: #1e2a22; } body { margin: 0; font-size: 11px; line-height: 1.45; } header { display: flex; justify-content: space-between; border-bottom: 3px solid #176b5b; padding-bottom: 14px; margin-bottom: 16px; } h1 { color: #176b5b; font-size: 25px; margin: 0 0 3px; } h2 { color: #0e4c42; font-size: 15px; margin: 20px 0 8px; } h3 { color: #0e4c42; font-size: 13px; margin: 0 0 5px; } p { margin: 0; color: #5b675e; } .generated { text-align: right; color: #5b675e; font-size: 10px; } .details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 18px; background: #eef4f2; padding: 12px; } .detail label { display: block; color: #5b675e; font-size: 9px; text-transform: uppercase; letter-spacing: .6px; } .detail strong { font-size: 11px; } .chartBlock { margin: 12px 0 18px; border: 1px solid #d7e3df; padding: 10px; page-break-inside: avoid; } svg { display: block; width: 100%; height: auto; } svg text { fill: #5b675e; font-size: 10px; } table { width: 100%; border-collapse: collapse; } th { background: #dcefea; color: #0e4c42; text-align: left; font-size: 10px; } th, td { padding: 7px; border-bottom: 1px solid #d7e3df; } .empty { text-align: center; color: #5b675e; } footer { margin-top: 20px; padding-top: 9px; border-top: 1px solid #d7e3df; color: #5b675e; font-size: 9px; }
-  </style></head><body><header><div><h1>Steady</h1><p>Glucose trends report</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header><h2>Report period</h2><p>${escapeHtml(rangeLabel)}</p><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Readings</label><strong>${readings.length}</strong></div></div><h2>Glucose trends</h2>${selectedCharts.join("")}<h2>Readings used (${readings.length})</h2><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table><footer>This report helps you discuss patterns with your healthcare team and does not replace medical advice.</footer></body></html>`);
+  </style></head><body>${prototype ? PROTOTYPE_PDF_BANNER : ""}<header><div><h1>Steady</h1><p>Glucose trends report</p></div><div class="generated">Generated<br>${escapeHtml(generatedAt)}</div></header><h2>Report period</h2><p>${escapeHtml(rangeLabel)}</p><div class="details"><div class="detail"><label>Name</label><strong>${displayValue(`${profile.name || ""} ${profile.surname || ""}`.trim())}</strong></div><div class="detail"><label>Diabetes status</label><strong>${displayValue(profile.status)}</strong></div><div class="detail"><label>Readings</label><strong>${readings.length}</strong></div></div><h2>Glucose trends</h2>${selectedCharts.join("")}<h2>Readings used (${readings.length})</h2><table><thead><tr><th>Date and time</th><th>Reading</th><th>Context</th><th>Status</th></tr></thead><tbody>${readingRows}</tbody></table><footer>This report helps you discuss patterns with your healthcare team and does not replace medical advice.</footer></body></html>`);
   let hasPrinted = false;
   const printReport = () => {
     if (hasPrinted) return;

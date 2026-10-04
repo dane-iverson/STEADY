@@ -84,6 +84,7 @@ export function ProfilePage({
   onConnectCaregiver,
   onBack,
   onLogout,
+  prototype = false,
 }) {
   const [tab, setTab] = useState("profile");
   const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
@@ -352,13 +353,15 @@ export function ProfilePage({
           <User size={13} style={{ marginRight: 5, verticalAlign: -2 }} />{" "}
           Medical profile
         </button>
-        <button
-          className={"chip" + (tab === "sharing" ? " chipActive" : "")}
-          onClick={() => setTab("sharing")}
-        >
-          <Users size={13} style={{ marginRight: 5, verticalAlign: -2 }} />{" "}
-          Caregiver sharing
-        </button>
+        {!prototype && (
+          <button
+            className={"chip" + (tab === "sharing" ? " chipActive" : "")}
+            onClick={() => setTab("sharing")}
+          >
+            <Users size={13} style={{ marginRight: 5, verticalAlign: -2 }} />{" "}
+            Caregiver sharing
+          </button>
+        )}
       </div>
 
       {tab === "profile" && (
@@ -861,12 +864,12 @@ export function ProfilePage({
           </Card>
 
           <button className="btnDanger" type="button" onClick={onLogout}>
-            Log out
+            {prototype ? "Exit prototype" : "Log out"}
           </button>
         </>
       )}
 
-      {tab === "sharing" && (
+      {tab === "sharing" && !prototype && (
         <>
           <Card>
             <div className="rowBetween">

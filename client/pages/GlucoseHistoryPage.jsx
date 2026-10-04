@@ -49,6 +49,7 @@ export function GlucoseHistoryPage({
   onBack,
   profile,
   reminders,
+  prototype = false,
 }) {
   const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState("All recordings");
@@ -89,6 +90,7 @@ export function GlucoseHistoryPage({
       profile,
       reminders,
       dateRange: null,
+      prototype,
       rangeLabel:
         exportRange === "Custom"
           ? `${customStart} to ${customEnd}`

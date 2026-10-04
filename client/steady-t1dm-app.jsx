@@ -20,6 +20,7 @@ import {
   buildReadingEntry,
 } from "./utils/diabetes.js";
 import { DEFAULT_INSULIN_SETTINGS } from "./utils/insulin.js";
+import { buildPrototypeData } from "./data/prototypeData.js";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -109,6 +110,7 @@ export default function App() {
   );
   const [accountType, setAccountType] = useState("patient");
   const [sharedItems, setSharedItems] = useState([]);
+  const [isPrototype, setIsPrototype] = useState(false);
 
   useEffect(() => {
     localStorage.removeItem("steady-token");
@@ -167,7 +169,7 @@ export default function App() {
   }
 
   async function persistUserState(nextOverrides = {}) {
-    if (!token) return;
+    if (!token || isPrototype) return;
 
     const payload = {
       ageGroup,
@@ -259,6 +261,21 @@ export default function App() {
     setAccountType("patient");
     setSharedItems([]);
     setOnline(true);
+    setIsPrototype(false);
+    setEditingReading(null);
+  }
+
+  function startPrototype(group) {
+    const data = buildPrototypeData(group);
+    resetUserState();
+    setName(data.name);
+    setAgeGroup(data.ageGroup);
+    setReadings(data.readings);
+    setReminders(data.reminders);
+    setProfile(data.profile);
+    setInsulinSettings(data.insulinSettings);
+    setIsPrototype(true);
+    setScreen("dashboard");
   }
 
   function handleLogout() {
@@ -359,6 +376,17 @@ export default function App() {
   return (
     <div className={`appOuter theme-${ageGroup}`}>
       <div className="phone">
+        {isPrototype && (
+          <div className="prototypeBanner" role="status">
+            <span>
+              <strong>PROTOTYPE</strong> · Sample data only. Not medical advice.
+              Nothing is saved.
+            </span>
+            <button type="button" onClick={handleLogout}>
+              Exit
+            </button>
+          </div>
+        )}
         {showTopBar && (
           <TopBar
             title={titles[routedScreen]}
@@ -377,6 +405,7 @@ export default function App() {
 
           {routedScreen === "auth" && (
             <AuthPage
+              onPrototype={startPrototype}
               onAuthSuccess={(user, authToken) => {
                 handleAuthSuccess(user, authToken);
               }}
@@ -420,11 +449,7 @@ export default function App() {
               }}
               onBack={() => {
                 clearEditingReading();
-                setScreen(
-                  user.accountType === "caregiver"
-                    ? "caregiverInbox"
-                    : "dashboard",
-                );
+                setScreen("dashboard");
               }}
             />
           )}
@@ -434,6 +459,7 @@ export default function App() {
               readings={readings}
               profile={profile}
               reminders={reminders}
+              prototype={isPrototype}
               onEdit={(reading) => startEditReading(reading)}
               onDelete={deleteReading}
               onNew={() => {
@@ -448,6 +474,7 @@ export default function App() {
             <TrendsPage
               readings={readings}
               profile={profile}
+              prototype={isPrototype}
               onBack={() => setScreen("dashboard")}
             />
           )}
@@ -495,6 +522,7 @@ export default function App() {
             <ProfilePage
               ageGroup={ageGroup}
               profile={profile}
+              prototype={isPrototype}
               readings={readings}
               reminders={reminders}
               setProfile={(nextProfile) => {

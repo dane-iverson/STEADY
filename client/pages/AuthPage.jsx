@@ -5,11 +5,12 @@ const API_BASE =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
 
-export function AuthPage({ onAuthSuccess }) {
+export function AuthPage({ onAuthSuccess, onPrototype }) {
   const [mode, setMode] = useState("login");
   const [accountType, setAccountType] = useState("patient");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [prototypeOpen, setPrototypeOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -387,6 +388,70 @@ export function AuthPage({ onAuthSuccess }) {
               : "Create account"}
         </button>
       </form>
+
+      {onPrototype && (
+        <div className="prototypeEntry">
+          <span>or</span>
+          <button
+            className="btnGhost"
+            type="button"
+            onClick={() => setPrototypeOpen(true)}
+          >
+            Try the prototype (sample data, no account)
+          </button>
+        </div>
+      )}
+
+      {prototypeOpen && (
+        <div
+          className="modalBackdrop"
+          role="presentation"
+          onClick={() => setPrototypeOpen(false)}
+        >
+          <section
+            className="modalPanel prototypePicker"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="prototype-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="exportPanelHeader">
+              <div>
+                <div className="sectionKicker">PROTOTYPE</div>
+                <h3 id="prototype-title">Who are you testing as?</h3>
+              </div>
+              <button
+                className="iconBtn"
+                type="button"
+                aria-label="Close"
+                onClick={() => setPrototypeOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <p className="mutedSmall">
+              Sample data only. Nothing is saved, and it resets when you exit.
+            </p>
+            <div className="prototypeEntryOptions">
+              {[
+                ["child", "Child", "Under 13"],
+                ["teen", "Teen", "13 to 18"],
+                ["young_adult", "Adult", "19 and over"],
+              ].map(([group, label, hint]) => (
+                <button
+                  key={group}
+                  className="btnGhost"
+                  type="button"
+                  onClick={() => onPrototype(group)}
+                >
+                  <strong>{label}</strong>
+                  <span>{hint}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
 
       {termsOpen && (
         <div

@@ -98,7 +98,12 @@ function buildTrendPoints(filteredReadings, mode) {
   }));
 }
 
-export function TrendsPage({ readings = [], onBack, profile = {} }) {
+export function TrendsPage({
+  readings = [],
+  onBack,
+  profile = {},
+  prototype = false,
+}) {
   const [view, setView] = useState("daily");
   const [range, setRange] = useState("Last 7 days");
   const [customStart, setCustomStart] = useState("");
@@ -187,6 +192,7 @@ export function TrendsPage({ readings = [], onBack, profile = {} }) {
       dailyPoints: exportDailyPoints,
       weeklyPoints: exportWeeklyPoints,
       exportMode,
+      prototype,
       glucoseRanges: profile?.glucoseRanges,
       rangeLabel: formatRangeLabel(
         exportRange,
