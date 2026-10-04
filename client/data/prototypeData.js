@@ -84,27 +84,33 @@ function buildMockReminders() {
   ];
 }
 
-// Birth years chosen so each persona stays in its age group until 2030.
+// Ages are applied to today's date so each persona stays in its age group.
 const PROTOTYPE_PERSONAS = {
   child: {
-    name: "Sam",
-    dateOfBirth: "2016-03-10",
+    name: "Tester",
+    age: 9,
     weight: "30 kg",
     height: "135 cm",
   },
   teen: {
-    name: "Sam",
-    dateOfBirth: "2010-01-15",
+    name: "Tester",
+    age: 15,
     weight: "55 kg",
     height: "165 cm",
   },
   young_adult: {
-    name: "Sam",
-    dateOfBirth: "2001-06-20",
+    name: "Tester",
+    age: 25,
     weight: "68 kg",
     height: "172 cm",
   },
 };
+
+function isoDaysAgo(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+}
 
 export function buildPrototypeData(ageGroup = "teen") {
   const persona = PROTOTYPE_PERSONAS[ageGroup] || PROTOTYPE_PERSONAS.teen;
@@ -115,18 +121,18 @@ export function buildPrototypeData(ageGroup = "teen") {
     reminders: buildMockReminders(),
     profile: {
       name: persona.name,
-      surname: "Tester",
+      surname: "Prototype",
       height: persona.height,
       weight: persona.weight,
       gender: "Female",
       otherMedication: "None (sample data)",
       allergies: "None (sample data)",
-      dateOfBirth: persona.dateOfBirth,
+      dateOfBirth: isoDaysAgo(Math.round(persona.age * 365.25) + 30),
       status: "Type 1 diabetes",
       contactName: "Sample Parent",
       contactNumber: "000 000 0000",
       hba1c: "7.2",
-      hba1cDate: "2026-08-01",
+      hba1cDate: isoDaysAgo(42),
       glucoseRanges: {
         veryLowMax: 3,
         lowMax: 4,

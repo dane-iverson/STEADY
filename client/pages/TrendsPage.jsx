@@ -28,11 +28,30 @@ function formatReadingDate(dateValue, fallbackLabel = "Reading") {
       minute: "2-digit",
       hour12: true,
     });
-    const day = stamp.toLocaleDateString([], { weekday: "short" });
+    const day = stamp.toLocaleDateString([], {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year:
+        stamp.getFullYear() === new Date().getFullYear()
+          ? undefined
+          : "numeric",
+    });
     return `${day}, ${time}`;
   }
 
   return fallbackLabel;
+}
+
+function formatShortDate(dateValue) {
+  const stamp = new Date(dateValue);
+  if (Number.isNaN(stamp.getTime())) return "";
+  return stamp.toLocaleDateString([], {
+    day: "numeric",
+    month: "short",
+    year:
+      stamp.getFullYear() === new Date().getFullYear() ? undefined : "2-digit",
+  });
 }
 
 const DISPLAY_RANGES = [
@@ -77,6 +96,7 @@ function buildTrendPoints(filteredReadings, mode) {
   if (mode === "daily") {
     return sorted.map((reading) => ({
       t: formatReadingDate(reading.date, reading.time || "Reading"),
+      short: formatShortDate(reading.date),
       v: reading.value,
     }));
   }
@@ -92,10 +112,17 @@ function buildTrendPoints(filteredReadings, mode) {
     grouped.get(key).values.push(reading.value);
   });
 
-  return [...grouped.values()].map(({ date, values }) => ({
-    t: date.toLocaleDateString([], { day: "numeric", month: "short" }),
-    v: values.reduce((sum, value) => sum + value, 0) / values.length,
-  }));
+  return [...grouped.values()].map(({ date, values }) => {
+    const label = date.toLocaleDateString([], {
+      day: "numeric",
+      month: "short",
+    });
+    return {
+      t: `Week of ${label}`,
+      short: label,
+      v: values.reduce((sum, value) => sum + value, 0) / values.length,
+    };
+  });
 }
 
 export function TrendsPage({
@@ -338,7 +365,7 @@ export function TrendsPage({
               />
             ))}
             <XAxis
-              dataKey="t"
+              dataKey="short"
               interval="preserveStartEnd"
               tick={{ fontSize: 11, fill: "#5B675E" }}
               axisLine={false}
@@ -360,6 +387,9 @@ export function TrendsPage({
                 fontFamily: "Lexend",
               }}
               formatter={(v) => [`${Number(v).toFixed(1)} mmol/L`, "Reading"]}
+              labelFormatter={(label, payload) =>
+                payload?.[0]?.payload?.t ?? label
+              }
             />
             <Line
               type="monotone"

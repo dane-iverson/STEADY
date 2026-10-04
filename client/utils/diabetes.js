@@ -405,7 +405,7 @@ function trendChartSvg(points, title, customLimits = null) {
     .map((index) => {
       const point = points[index];
       const [x] = pointCoordinates[index];
-      return `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.t)}</text>`;
+      return `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.short || point.t)}</text>`;
     })
     .join("");
   const dots = pointCoordinates
