@@ -25,7 +25,7 @@ export function EmergencyPage({ profile, onBack }) {
           <li>Stop what you're doing and sit down if you can.</li>
           <li>
             Have a fast-acting carb — e.g. juice, glucose tablets or regular
-            cold-drink.
+            cooldrink.
           </li>
           <li>Wait 15 minutes, then check your glucose again.</li>
           <li>
