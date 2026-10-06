@@ -21,6 +21,13 @@ import {
 } from "./utils/diabetes.js";
 import { DEFAULT_INSULIN_SETTINGS } from "./utils/insulin.js";
 import { buildPrototypeData } from "./data/prototypeData.js";
+import {
+  analyticsConfigured,
+  getAnalyticsConsent,
+  initAnalytics,
+  setAnalyticsConsent,
+  trackScreen,
+} from "./utils/analytics.js";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -111,6 +118,8 @@ export default function App() {
   const [accountType, setAccountType] = useState("patient");
   const [sharedItems, setSharedItems] = useState([]);
   const [isPrototype, setIsPrototype] = useState(false);
+  const [analyticsConsent, setAnalyticsConsentState] =
+    useState(getAnalyticsConsent);
 
   useEffect(() => {
     localStorage.removeItem("steady-token");
@@ -347,6 +356,21 @@ export default function App() {
 
   const isCaregiver = accountType === "caregiver";
   const routedScreen = isCaregiver ? "caregiverInbox" : screen;
+
+  useEffect(() => {
+    if (analyticsConsent === "granted") initAnalytics();
+  }, [analyticsConsent]);
+
+  useEffect(() => {
+    if (analyticsConsent === "granted") {
+      trackScreen(routedScreen, { prototype: isPrototype });
+    }
+  }, [routedScreen, isPrototype, analyticsConsent]);
+
+  function chooseAnalytics(choice) {
+    setAnalyticsConsent(choice);
+    setAnalyticsConsentState(choice);
+  }
   const showTopBar =
     !["welcome", "auth", "caregiverInbox"].includes(routedScreen) &&
     !isCaregiver;
@@ -551,6 +575,28 @@ export default function App() {
         </div>
 
         {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
+
+        {analyticsConfigured && analyticsConsent === null && (
+          <div className="consentBanner" role="dialog" aria-label="Analytics">
+            <p>
+              Steady uses Google Analytics to count which screens are opened, so
+              we can improve the app. No health information, names or emails are
+              sent. You can decline and the app works the same.
+            </p>
+            <div className="consentActions">
+              <button type="button" onClick={() => chooseAnalytics("denied")}>
+                Decline
+              </button>
+              <button
+                type="button"
+                className="consentAccept"
+                onClick={() => chooseAnalytics("granted")}
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

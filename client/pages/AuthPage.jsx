@@ -5,6 +5,61 @@ const API_BASE =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? "http://localhost:4000/api" : "/api");
 
+const TERMS_SECTIONS = [
+  [
+    "1. Research prototype",
+    "Steady is a research prototype built to evaluate how usable and useful a Type 1 diabetes support tool is. It is provided for testing and demonstration only, is not a registered medical device, and may contain errors, change without notice, or become unavailable at any time.",
+  ],
+  [
+    "2. Not medical advice",
+    "Nothing in Steady is medical advice, diagnosis or treatment. Do not use it to make decisions about your insulin, food, medication or care. Always follow the plan agreed with your doctor or diabetes care team. The insulin calculator is an educational demonstration: its results must not be used to decide a real dose, and any settings you enter should be confirmed by your healthcare professional.",
+  ],
+  [
+    "3. Emergencies",
+    "Steady cannot monitor you, raise alarms or call for help, and reminders may not appear if your device is off, offline or has notifications disabled. If you or someone you care for is unwell, has a very low or very high glucose reading, or you are unsure what to do, contact your healthcare provider or local emergency services immediately.",
+  ],
+  [
+    "4. Who may use Steady",
+    "If you are under 18, a parent or legal guardian must read and agree to these terms on your behalf and should supervise your use of the app. By creating an account you confirm that you are 18 or older, or that you have your parent or guardian's permission.",
+  ],
+  [
+    "5. Information we collect",
+    "If you create an account we store the details you enter: your name, email address, date of birth, gender, height, weight, allergies, other medication, emergency contact, glucose readings, HbA1c, reminders, calculator settings and any items you share with a caregiver. Your password is stored only in a hashed (scrambled) form. This is health information, which is sensitive personal information, and you give it voluntarily.",
+  ],
+  [
+    "6. How your information is used",
+    "Your information is used only to run the app for you and to evaluate and improve this prototype. It is not sold and is not used for advertising. Information you enter in the Try the prototype mode is sample data held only in your browser and is discarded when you exit or refresh.",
+  ],
+  [
+    "7. Analytics",
+    "With your consent, Steady uses Google Analytics to count which screens are opened. This does not include your health information, name or email address. You can decline and the app works the same. Google may process this usage data on servers outside your country.",
+  ],
+  [
+    "8. Sharing with caregivers",
+    "You choose whether to connect a caregiver and exactly which information to share. Anything you send is visible to that caregiver's account and cannot be recalled once they have seen it. Only share with people you trust, and remove a caregiver at any time in your profile.",
+  ],
+  [
+    "9. Storage and security",
+    "We take reasonable steps to protect your information, including encrypted connections and hashed passwords, but no system is completely secure and we cannot guarantee against unauthorised access. Keep your password private, log out on shared devices, and do not enter information you are not comfortable storing in a prototype.",
+  ],
+  [
+    "10. Your rights",
+    "You may ask to see, correct or delete your information, or to close your account, by contacting the research team who gave you this link. Information will be handled in line with applicable data protection law, including South Africa's Protection of Personal Information Act (POPIA).",
+  ],
+  [
+    "11. Your responsibilities",
+    "Enter information accurately, check readings against your meter, keep your login details secure, and do not misuse or attempt to disrupt the app or access other users' information.",
+  ],
+  [
+    "12. Liability",
+    "To the fullest extent permitted by law, Steady is provided as is, without warranties of accuracy, availability or fitness for a particular purpose, and the research team accepts no liability for loss, injury or harm arising from use of, or reliance on, this prototype. Nothing here limits any rights you have under law that cannot be excluded.",
+  ],
+  [
+    "13. Changes",
+    "These terms may be updated as the prototype develops. Continued use after a change means you accept the updated terms. A full set of terms and a privacy policy would be published before any public release.",
+  ],
+];
+
 export function AuthPage({ onAuthSuccess, onPrototype }) {
   const [mode, setMode] = useState("login");
   const [accountType, setAccountType] = useState("patient");
@@ -364,7 +419,8 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
                 }}
               >
                 Terms and Conditions
-              </button>
+              </button>{" "}
+              (if I am under 18, my parent or guardian has agreed too)
             </span>
           </label>
         )}
@@ -480,29 +536,12 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
                 ×
               </button>
             </div>
-            <p className="termsText">
-              This application is a research prototype developed for the purpose
-              of evaluating the usability and functionality of a technology
-              solution designed to support Type 1 Diabetes management. The
-              features, information and functionality presented within this
-              prototype are intended for research and demonstration purposes
-              only and should not be considered a substitute for professional
-              medical advice, diagnosis or treatment.
-            </p>
-            <p className="termsText">
-              This prototype is not intended for use in the clinical management
-              of diabetes or for making medical decisions. For the purpose of
-              this research prototype, a simplified version of the Terms and
-              Conditions is provided.
-            </p>
-            <p className="termsText">
-              A comprehensive set of Terms and Conditions, including detailed
-              information regarding use of the application, privacy, data
-              protection, user responsibilities, medical disclaimers and other
-              applicable legal requirements, would be developed and made
-              available should the technology solution be developed into a full
-              application for public use.
-            </p>
+            {TERMS_SECTIONS.map(([heading, body]) => (
+              <div key={heading}>
+                <h4 className="termsHeading">{heading}</h4>
+                <p className="termsText">{body}</p>
+              </div>
+            ))}
             <button
               className="btnPrimary termsCloseButton"
               type="button"
