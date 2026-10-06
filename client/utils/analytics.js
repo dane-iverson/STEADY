@@ -23,22 +23,12 @@ export function setAnalyticsConsent(value) {
 }
 
 export function initAnalytics() {
-  if (initialised || !MEASUREMENT_ID || typeof document === "undefined") return;
+  if (initialised || !MEASUREMENT_ID || typeof window.gtag !== "function") {
+    return;
+  }
   if (getAnalyticsConsent() !== "granted") return;
   initialised = true;
-
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() {
-    window.dataLayer.push(arguments);
-  };
-  window.gtag("js", new Date());
-  // Screens are tracked manually because the app has no router.
-  window.gtag("config", MEASUREMENT_ID, { send_page_view: false });
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(MEASUREMENT_ID)}`;
-  document.head.appendChild(script);
+  window.gtag("consent", "update", { analytics_storage: "granted" });
 }
 
 // Only the screen name is sent: never readings, names or other health data.

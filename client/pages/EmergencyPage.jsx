@@ -3,6 +3,11 @@ import { ChevronLeft, Phone, WifiOff } from "lucide-react";
 import { Card } from "../components/Card";
 
 export function EmergencyPage({ profile, onBack }) {
+  // tel: links only accept digits, a leading + and a few separators.
+  const dialNumber = (profile.contactNumber || "")
+    .trim()
+    .replace(/(?!^\+)[^\d]/g, "");
+  const canDial = dialNumber.replace(/\D/g, "").length >= 3;
   return (
     <div className="screen">
       <button className="linkBack" onClick={onBack}>
@@ -74,10 +79,14 @@ export function EmergencyPage({ profile, onBack }) {
         <div className="mutedSmall">
           {profile.contactNumber || "Add a contact in your profile"}
         </div>
-        {profile.contactNumber && (
-          <button className="btnPrimary" style={{ marginTop: 10 }}>
-            Call {profile.contactName}
-          </button>
+        {canDial && (
+          <a
+            className="btnPrimary callButton"
+            href={`tel:${dialNumber}`}
+            aria-label={`Call ${profile.contactName || "emergency contact"} on ${profile.contactNumber}`}
+          >
+            <Phone size={16} /> Call {profile.contactName || "contact"}
+          </a>
         )}
       </Card>
 

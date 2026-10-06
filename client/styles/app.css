@@ -900,3 +900,5 @@ body {
 .consentActions { display: flex; justify-content: flex-end; gap: 8px; }
 .consentActions button { font-family: inherit; font-size: 12px; font-weight: 700; padding: 7px 14px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--ink); cursor: pointer; }
 .consentActions .consentAccept { background: var(--brand); border-color: var(--brand); color: #fff; }
+.callButton { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; text-decoration: none; box-sizing: border-box; }
+.callButton:hover { background: var(--brand-dark); }
