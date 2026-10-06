@@ -390,8 +390,24 @@ function trendChartSvg(points, title, customLimits = null) {
   const chartHeight = height - top - bottom;
   const glucoseRanges = glucoseRangesFromLimits(customLimits || undefined);
   const chartMax = Math.max(18, glucoseRanges[3].max + 4);
+  // Weekly charts carry `x` timestamps, daily-average points (`d`) and weekly points (`v`).
+  const timed = points.some((point) => point.x !== undefined);
+  const xValues = points.map((point) => point.x);
+  const minX = Math.min(...xValues);
+  const maxX = Math.max(...xValues);
   const xStep =
     points.length > 1 ? chartWidth / (points.length - 1) : chartWidth;
+  const xOf = (point, index) => {
+    if (timed) {
+      return (
+        left +
+        (maxX > minX
+          ? ((point.x - minX) / (maxX - minX)) * chartWidth
+          : chartWidth / 2)
+      );
+    }
+    return left + (points.length > 1 ? index * xStep : chartWidth / 2);
+  };
   const y = (value) =>
     top +
     chartHeight -
@@ -403,36 +419,56 @@ function trendChartSvg(points, title, customLimits = null) {
       .filter((value) => value < chartMax),
     chartMax,
   ].filter((value, index, values) => values.indexOf(value) === index);
-  const pointCoordinates = points.map((point, index) => [
-    left + (points.length > 1 ? index * xStep : chartWidth / 2),
-    y(point.v),
-  ]);
-  const path = pointCoordinates
-    .map(
-      ([x, pointY], index) =>
-        `${index ? "L" : "M"}${x.toFixed(1)},${pointY.toFixed(1)}`,
+  const toSeries = (key) =>
+    points
+      .map((point, index) => ({
+        point,
+        value: point[key],
+        x: xOf(point, index),
+      }))
+      .filter(({ value }) => value !== undefined)
+      .map((entry) => ({ ...entry, y: y(entry.value) }));
+  const toPath = (series) =>
+    series
+      .map(
+        ({ x, y: pointY }, index) =>
+          `${index ? "L" : "M"}${x.toFixed(1)},${pointY.toFixed(1)}`,
+      )
+      .join(" ");
+  const toDots = (series, radius, fill, label) =>
+    series
+      .map(
+        ({ point, value, x, y: pointY }) =>
+          `<circle cx="${x.toFixed(1)}" cy="${pointY.toFixed(1)}" r="${radius}" fill="${fill}"><title>${escapeHtml(point.t)}: ${Number(value).toFixed(1)} mmol/L${label}</title></circle>`,
+      )
+      .join("");
+  const mainSeries = toSeries("v");
+  const dailySeries = timed ? toSeries("d") : [];
+  const labelSeries = timed ? dailySeries : mainSeries;
+  const labelStep =
+    labelSeries.length > 8 ? Math.ceil((labelSeries.length - 1) / 7) : 1;
+  const labels = labelSeries
+    .filter(
+      (_, index) =>
+        index === 0 ||
+        index === labelSeries.length - 1 ||
+        index % labelStep === 0,
     )
-    .join(" ");
-  const labelStep = points.length > 8 ? Math.ceil((points.length - 1) / 7) : 1;
-  const labelIndexes = points.reduce((indexes, point, index) => {
-    if (index === 0 || index === points.length - 1 || index % labelStep === 0) {
-      indexes.push(index);
-    }
-    return indexes;
-  }, []);
-  const labels = labelIndexes
-    .map((index) => {
-      const point = points[index];
-      const [x] = pointCoordinates[index];
-      return `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.short || point.t)}</text>`;
-    })
-    .join("");
-  const dots = pointCoordinates
     .map(
-      ([x, pointY], index) =>
-        `<circle cx="${x.toFixed(1)}" cy="${pointY.toFixed(1)}" r="4" fill="#176b5b"><title>${escapeHtml(points[index].t)}: ${Number(points[index].v).toFixed(1)} mmol/L</title></circle>`,
+      ({ point, x }) =>
+        `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.short || point.t)}</text>`,
     )
     .join("");
+  const dailyLayer = timed
+    ? `<path d="${toPath(dailySeries)}" fill="none" stroke="#8fb8ac" stroke-opacity=".7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${toDots(dailySeries, 2.5, "#8fb8ac", " (daily average)")}`
+    : "";
+  const path = toPath(mainSeries);
+  const dots = toDots(
+    mainSeries,
+    timed ? 6 : 4,
+    "#176b5b",
+    timed ? " (weekly average)" : "",
+  );
   const rangeBands = glucoseRanges
     .map(
       (band) =>
@@ -446,7 +482,7 @@ function trendChartSvg(points, title, customLimits = null) {
     )
     .join("");
 
-  return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend">${rangeBands}${gridLines}<path d="${path}" fill="none" stroke="#176b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
+  return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend">${rangeBands}${gridLines}${dailyLayer}<path d="${path}" fill="none" stroke="#176b5b" stroke-width="${timed ? 3.5 : 3}" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
 }
 
 /** Opens a browser print view for a trends report; return false if blocked. */

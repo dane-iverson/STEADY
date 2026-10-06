@@ -125,6 +125,56 @@ function buildTrendPoints(filteredReadings, mode) {
   });
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Weekly chart data: one faint point per day (`d`) plus one weekly average (`v`) at mid-week.
+function buildWeeklyChartPoints(filteredReadings) {
+  const days = new Map();
+  filteredReadings.forEach((reading) => {
+    const value = Number(reading.v);
+    const stamp = reading.date ? new Date(reading.date) : null;
+    if (!Number.isFinite(value) || !stamp || Number.isNaN(stamp.getTime())) {
+      return;
+    }
+    const day = new Date(stamp);
+    day.setHours(12, 0, 0, 0);
+    const key = day.getTime();
+    if (!days.has(key)) days.set(key, { date: day, values: [] });
+    days.get(key).values.push(value);
+  });
+
+  const average = (values) =>
+    values.reduce((sum, value) => sum + value, 0) / values.length;
+  const dailyPoints = [...days.values()].map(({ date, values }) => ({
+    x: date.getTime(),
+    t: formatShortDate(date),
+    short: formatShortDate(date),
+    d: average(values),
+  }));
+  const weeklyPoints = buildTrendPoints(filteredReadings, "weekly").map(
+    (point, index) => ({ point, index }),
+  );
+
+  // Re-derive each week's start so the weekly point sits in the middle of its week.
+  const weekStarts = [];
+  days.forEach(({ date }) => {
+    const start = new Date(date);
+    start.setDate(date.getDate() - date.getDay());
+    start.setHours(0, 0, 0, 0);
+    if (!weekStarts.includes(start.getTime())) weekStarts.push(start.getTime());
+  });
+  weekStarts.sort((a, b) => a - b);
+
+  const weekPoints = weeklyPoints.map(({ point, index }) => ({
+    x: weekStarts[index] + 3.5 * DAY_MS,
+    t: point.t,
+    short: point.short,
+    v: point.v,
+  }));
+
+  return [...dailyPoints, ...weekPoints].sort((a, b) => a.x - b.x);
+}
+
 export function TrendsPage({
   readings = [],
   onBack,
@@ -160,7 +210,7 @@ export function TrendsPage({
     [exportReadings],
   );
   const exportWeeklyPoints = useMemo(
-    () => buildTrendPoints(exportReadings, "weekly"),
+    () => buildWeeklyChartPoints(exportReadings),
     [exportReadings],
   );
   const exportRangeInvalid = exportRange === "Custom" && !exportDateRange;
@@ -179,11 +229,12 @@ export function TrendsPage({
     () => buildTrendPoints(filteredReadings, "daily"),
     [filteredReadings],
   );
-  const weeklyPoints = useMemo(
-    () => buildTrendPoints(filteredReadings, "weekly"),
+  const weeklyChartPoints = useMemo(
+    () => buildWeeklyChartPoints(filteredReadings),
     [filteredReadings],
   );
-  const chartData = view === "daily" ? dailyPoints : weeklyPoints;
+  const chartData = view === "daily" ? dailyPoints : weeklyChartPoints;
+  const weeklyView = view === "weekly";
   const glucoseRanges = glucoseRangesFromLimits(profile?.glucoseRanges);
   const glucoseRangeDescriptions =
     formatGlucoseRangeDescriptions(glucoseRanges);
@@ -365,7 +416,13 @@ export function TrendsPage({
               />
             ))}
             <XAxis
-              dataKey="short"
+              dataKey={weeklyView ? "x" : "short"}
+              {...(weeklyView && {
+                type: "number",
+                scale: "time",
+                domain: ["dataMin", "dataMax"],
+                tickFormatter: formatShortDate,
+              })}
               interval="preserveStartEnd"
               tick={{ fontSize: 11, fill: "#5B675E" }}
               axisLine={false}
@@ -386,17 +443,37 @@ export function TrendsPage({
                 fontSize: 12,
                 fontFamily: "Lexend",
               }}
-              formatter={(v) => [`${Number(v).toFixed(1)} mmol/L`, "Reading"]}
+              formatter={(v, name) => [
+                `${Number(v).toFixed(1)} mmol/L`,
+                name === "d"
+                  ? "Daily average"
+                  : weeklyView
+                    ? "Weekly average"
+                    : "Reading",
+              ]}
               labelFormatter={(label, payload) =>
                 payload?.[0]?.payload?.t ?? label
               }
             />
+            {weeklyView && (
+              <Line
+                type="monotone"
+                dataKey="d"
+                stroke="#8FB8AC"
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
+                dot={{ r: 2.5, fill: "#8FB8AC", strokeWidth: 0 }}
+                activeDot={{ r: 4 }}
+                connectNulls
+              />
+            )}
             <Line
               type="monotone"
               dataKey="v"
               stroke="#176B5B"
-              strokeWidth={2.5}
-              dot={{ r: 4, fill: "#2D6A4F" }}
+              strokeWidth={weeklyView ? 3.5 : 2.5}
+              dot={{ r: weeklyView ? 6 : 4, fill: "#2D6A4F" }}
+              connectNulls
             />
           </LineChart>
         </ResponsiveContainer>
