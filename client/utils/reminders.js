@@ -1,3 +1,4 @@
+/** Formats a date's local time for compact reminder labels. */
 export function formatTimeShort(d) {
   return d.toLocaleTimeString([], {
     hour: "numeric",
@@ -6,10 +7,10 @@ export function formatTimeShort(d) {
   });
 }
 
-function pad(n) {
-  return n < 10 ? `0${n}` : `${n}`;
-}
-
+/**
+ * Advances a reminder date to its next occurrence after now.
+ * Unknown recurrence names leave a past date unchanged.
+ */
 export function getNextOccurrence(baseDate, repeat) {
   const now = new Date();
   let next = new Date(baseDate);
@@ -41,6 +42,7 @@ export function getNextOccurrence(baseDate, repeat) {
   return next;
 }
 
+/** Formats a reminder's recurrence rule and scheduled time for display. */
 export function formatReminderWhen(reminder) {
   if (!reminder || !reminder.when) return "";
   const date = new Date(reminder.when);
@@ -59,6 +61,7 @@ export function formatReminderWhen(reminder) {
   return `${date.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short", year: undefined })}, ${formatTimeShort(date)}`;
 }
 
+/** Formats a known future occurrence relative to the current local date. */
 export function formatNextOccurrence(dateOrIso) {
   if (!dateOrIso) return "";
   const d =
@@ -81,6 +84,7 @@ export function formatNextOccurrence(dateOrIso) {
   return `${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}, ${time}`;
 }
 
+/** Advances one scheduled occurrence by the reminder's recurrence interval. */
 function advanceReminderDate(date, repeat) {
   const next = new Date(date);
   const stepMap = {
@@ -98,6 +102,10 @@ function advanceReminderDate(date, repeat) {
   return next;
 }
 
+/**
+ * Returns the current occurrence state and any matching completion record.
+ * Returns null if the reminder has no valid scheduled date.
+ */
 export function getReminderStatus(reminder, now = new Date()) {
   const baseDate = new Date(reminder?.when);
   if (!reminder?.when || Number.isNaN(baseDate.getTime())) return null;
@@ -171,17 +179,24 @@ export const COMPLETION_SORT_OPTIONS = [
   ["late", "Completed late first"],
 ];
 
+/** Collects completion history, applying optional filters and sort order. */
 export function collectCompletions(
   reminders = [],
   { dateRange = null, reminderId = "all", sortBy = "newest" } = {},
 ) {
   const entries = reminders
-    .filter((reminder) => reminderId === "all" || String(reminder.id) === String(reminderId))
+    .filter(
+      (reminder) =>
+        reminderId === "all" || String(reminder.id) === String(reminderId),
+    )
     .flatMap((reminder) =>
       (reminder.completionHistory || []).map((entry) => ({
         reminderId: reminder.id,
         reminderTitle: reminder.title,
-        kind: reminder.kind === "Other" ? reminder.otherKind || "Other" : reminder.kind,
+        kind:
+          reminder.kind === "Other"
+            ? reminder.otherKind || "Other"
+            : reminder.kind,
         what: entry.what,
         notes: entry.notes || "",
         completedAt: entry.completedAt,
@@ -192,14 +207,19 @@ export function collectCompletions(
     .filter((entry) => {
       const completed = new Date(entry.completedAt);
       if (Number.isNaN(completed.getTime())) return false;
-      return !dateRange || (completed >= dateRange.start && completed <= dateRange.end);
+      return (
+        !dateRange ||
+        (completed >= dateRange.start && completed <= dateRange.end)
+      );
     });
 
   const byDate = (a, b) => new Date(b.completedAt) - new Date(a.completedAt);
   return entries.sort((a, b) => {
     if (sortBy === "oldest") return -byDate(a, b);
-    if (sortBy === "reminder") return a.reminderTitle.localeCompare(b.reminderTitle) || byDate(a, b);
-    if (sortBy === "late") return Number(a.onTime) - Number(b.onTime) || byDate(a, b);
+    if (sortBy === "reminder")
+      return a.reminderTitle.localeCompare(b.reminderTitle) || byDate(a, b);
+    if (sortBy === "late")
+      return Number(a.onTime) - Number(b.onTime) || byDate(a, b);
     return byDate(a, b);
   });
 }

@@ -34,6 +34,7 @@ const TREND_SHARE_RANGES = [
   "All recordings",
 ];
 
+// Group saved readings into daily values or weekly averages for caregiver reports.
 function buildSharedTrendPoints(readings, mode) {
   const sorted = readings
     .map((reading) => ({
@@ -223,6 +224,7 @@ export function ProfilePage({
     });
   }
 
+  // Build the selected report from current profile data, then deliver it to caregivers.
   function sendSharedItem() {
     if (!caregivers.length) return;
     const latestReading = readings[readings.length - 1];
@@ -245,12 +247,6 @@ export function ProfilePage({
         ? `Most recent HbA1c: ${profile.hba1c}%${profile.hba1cDate ? ` on ${profile.hba1cDate}` : ""}`
         : "No HbA1c result saved yet.",
     };
-    const validValues = readings
-      .map((reading) => Number(reading.v))
-      .filter(Number.isFinite);
-    const average = validValues.length
-      ? validValues.reduce((sum, value) => sum + value, 0) / validValues.length
-      : null;
     const latestStatus = latestReading
       ? statusOf(
           latestReading.v,

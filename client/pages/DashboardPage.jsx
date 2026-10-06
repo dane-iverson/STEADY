@@ -16,11 +16,7 @@ import {
   statusOf,
 } from "../utils/diabetes";
 import { Card } from "../components/Card";
-import {
-  formatReminderWhen,
-  getNextOccurrence,
-  formatNextOccurrence,
-} from "../utils/reminders";
+import { getNextOccurrence, formatNextOccurrence } from "../utils/reminders";
 
 export function DashboardPage({
   ageGroup,

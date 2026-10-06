@@ -1,3 +1,7 @@
+/**
+ * Glucose bands in mmol/L. The final band extends above the meter's usual range.
+ * Range limits below the target are exclusive at the maximum and inclusive at the minimum.
+ */
 export const GLUCOSE_RANGES = [
   {
     key: "very-low",
@@ -41,6 +45,7 @@ export const GLUCOSE_RANGES = [
   },
 ];
 
+/** Default cutoffs used when a profile has no custom glucose ranges. */
 export const DEFAULT_GLUCOSE_RANGE_LIMITS = {
   veryLowMax: 3,
   lowMax: 4,
@@ -48,6 +53,10 @@ export const DEFAULT_GLUCOSE_RANGE_LIMITS = {
   highMax: 14,
 };
 
+/**
+ * Replaces the default glucose boundaries with valid user-configured limits.
+ * If the limits are missing or not strictly increasing, the defaults are returned.
+ */
 export function glucoseRangesFromLimits(limits = {}) {
   const values = {
     ...DEFAULT_GLUCOSE_RANGE_LIMITS,
@@ -75,12 +84,17 @@ export function glucoseRangesFromLimits(limits = {}) {
   ];
 }
 
+/** Maps a glucose value to its horizontal position on a 0-to-100 scale. */
 export function glucoseRangePosition(value, maxValue = 18) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return 0;
   return Math.min(100, Math.max(0, (numericValue / maxValue) * 100));
 }
 
+/**
+ * Calculates age from a YYYY-MM-DD date and maps it to a display group.
+ * Returns null for an empty, invalid or future date.
+ */
 export function ageGroupFromDateOfBirth(dateOfBirth, today = new Date()) {
   const birthDate = new Date(`${dateOfBirth}T00:00:00`);
   if (!dateOfBirth || Number.isNaN(birthDate.getTime()) || birthDate > today) {
@@ -105,10 +119,6 @@ export function getTimeOfDayGreeting(date = new Date()) {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-export function fmt(v) {
-  return Number(v).toFixed(1);
 }
 
 export function normalizeDecimalInput(value) {
@@ -172,6 +182,10 @@ export function buildReadingEntry(
   };
 }
 
+/**
+ * Classifies a glucose value using the default context-specific boundaries.
+ * The display thresholds are product defaults, not an individualized care plan.
+ */
 function classifyReading(v, context = "Random") {
   if (v < 0) {
     return { label: "Very low", key: "very-low", symbol: "▼" };
@@ -201,6 +215,10 @@ function classifyReading(v, context = "Random") {
   return { label: "Very high", key: "very-high", symbol: "▲" };
 }
 
+/**
+ * Returns the glucose status, using custom profile limits when provided.
+ * Values outside the configured bands are assigned to the nearest outer band.
+ */
 export function statusOf(v, context = "Random", customLimits = null) {
   if (!customLimits) return classifyReading(Number(v), context);
   const value = Number(v);
@@ -218,7 +236,7 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -360,6 +378,7 @@ export function exportReadingsToPdf({
   return true;
 }
 
+/** Builds the SVG plot embedded in exported trend reports. */
 function trendChartSvg(points, title, customLimits = null) {
   const width = 760;
   const height = 250;
@@ -430,6 +449,7 @@ function trendChartSvg(points, title, customLimits = null) {
   return `<div class="chartBlock"><h3>${escapeHtml(title)}</h3><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)} glucose trend">${rangeBands}${gridLines}<path d="${path}" fill="none" stroke="#176b5b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
 }
 
+/** Opens a browser print view for a trends report; return false if blocked. */
 export function exportTrendsToPdf({
   readings = [],
   profile = {},

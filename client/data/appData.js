@@ -4,10 +4,6 @@ export const AGE_GROUPS = {
   young_adult: { label: "19–25", name: "Young adults", tone: "adult" },
 };
 
-export const LOW = 4.0;
-export const HIGH = 7.8;
-export const UNIT = "mmol/L";
-
 export const COPY = {
   child: {
     greeting: "Hi",
@@ -31,25 +27,6 @@ export const COPY = {
     saveMsg: "Reading saved to your log.",
   },
 };
-
-export const DAILY = [
-  { t: "7am", v: 5.4 },
-  { t: "10am", v: 6.1 },
-  { t: "1pm", v: 8.9 },
-  { t: "4pm", v: 5.9 },
-  { t: "7pm", v: 9.5 },
-  { t: "10pm", v: 6.7 },
-];
-
-export const WEEKLY = [
-  { t: "Mon", v: 6.9 },
-  { t: "Tue", v: 5.7 },
-  { t: "Wed", v: 8.2 },
-  { t: "Thu", v: 4.8 },
-  { t: "Fri", v: 6.3 },
-  { t: "Sat", v: 9.1 },
-  { t: "Sun", v: 6.4 },
-];
 
 export const EDUCATION = [
   {

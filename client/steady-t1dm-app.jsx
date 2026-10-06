@@ -121,6 +121,7 @@ export default function App() {
   const [analyticsConsent, setAnalyticsConsentState] =
     useState(getAnalyticsConsent);
 
+  // Restore the signed-in user's saved data when a tab session is reopened.
   useEffect(() => {
     localStorage.removeItem("steady-token");
   }, []);
@@ -162,6 +163,7 @@ export default function App() {
     }
   }, [accountType, screen]);
 
+  // Keep API responses and initial state aligned with the values rendered by the app.
   function hydrateFromUser(user) {
     setName(user.name || "");
     setAgeGroup(user.ageGroup || "teen");
@@ -177,6 +179,7 @@ export default function App() {
     setSharedItems(user.sharedItems || []);
   }
 
+  // Persist a complete snapshot so each update uses the same API payload shape.
   async function persistUserState(nextOverrides = {}) {
     if (!token || isPrototype) return;
 
@@ -216,6 +219,7 @@ export default function App() {
     hydrateFromUser(payload.user);
   }
 
+  // API actions used by the profile and caregiver inbox screens.
   async function sendSharedItemToCaregiver(item, caregiverEmail) {
     if (!token) throw new Error("You need to be signed in to share updates.");
     const response = await fetch(`${API_BASE}/user/share`, {
@@ -250,6 +254,7 @@ export default function App() {
     return payload.caregiver;
   }
 
+  // Session and prototype transitions reset or hydrate all account-scoped state.
   function handleAuthSuccess(user, authToken) {
     sessionStorage.setItem("steady-token", authToken);
     setToken(authToken);
@@ -294,6 +299,7 @@ export default function App() {
     setScreen("welcome");
   }
 
+  // Reading mutations update local UI state and save the changed collection.
   function addReading(
     v,
     context = "Random",
@@ -354,9 +360,11 @@ export default function App() {
     setEditingReading(null);
   }
 
+  // Caregiver accounts always land on the inbox, regardless of the prior screen.
   const isCaregiver = accountType === "caregiver";
   const routedScreen = isCaregiver ? "caregiverInbox" : screen;
 
+  // Analytics is initialized and screen-tracked only after consent is granted.
   useEffect(() => {
     if (analyticsConsent === "granted") initAnalytics();
   }, [analyticsConsent]);

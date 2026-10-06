@@ -1,7 +1,16 @@
+/**
+ * Database connection and the in-memory fallback.
+ *
+ * When MONGODB_URI is missing or unreachable the API keeps users in the
+ * `memoryUsers` array instead. That data is lost when the server restarts,
+ * so it is only suitable for local development.
+ */
 import mongoose from "mongoose";
 
+/** Users held in memory when MongoDB is not configured. */
 export const memoryUsers = [];
 
+/** Connects to MongoDB if possible and reports whether the in-memory fallback is in use. */
 export async function connectDatabase() {
   const mongoUri = process.env.MONGODB_URI;
 
@@ -26,6 +35,7 @@ export async function connectDatabase() {
   }
 }
 
+/** Builds a complete in-memory user record, filling in defaults for anything missing. */
 export function createUserDocument(data) {
   return {
     _id: data._id || cryptoRandomId(),
@@ -69,6 +79,7 @@ export function createUserDocument(data) {
   };
 }
 
+// Good enough for local fallback users; MongoDB generates its own ids.
 function cryptoRandomId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }

@@ -1,0 +1,177 @@
+/*
+ * 02-themes.css
+ * Age-group themes. Each theme overrides the colour tokens and a few shapes.
+ * Load order matters: later files override earlier ones.
+ */
+
+/* ==========================================================================
+   Theme: child
+   ========================================================================== */
+
+.appOuter.theme-child {
+  --bg: #fff5e8;
+  --surface: #fffef8;
+  --surface-muted: #fff7ec;
+  --ink: #283442;
+  --ink-soft: #68727d;
+  --brand: #e5653f;
+  --brand-dark: #a9472e;
+  --brand-tint: #ffe1c2;
+  --target: #279b74;
+  --border: #f0d7bd;
+  --shadow-color: rgba(181, 105, 48, 0.25);
+  --accent: #e5653f;
+  background:
+    radial-gradient(circle at 80% 5%, #ffffff 0, transparent 24%),
+    linear-gradient(135deg, #fff5e8 0%, #e6f4ee 100%);
+}
+
+.appOuter.theme-child .phone {
+  border-radius: 38px;
+  border-color: #f0d7bd;
+  box-shadow: 0 24px 60px -20px rgba(181, 105, 48, 0.3);
+}
+
+.appOuter.theme-child .topbar {
+  background: linear-gradient(115deg, #ffe5c7, #e8f5ed);
+}
+
+.appOuter.theme-child .topbarBrandMark {
+  border-radius: 11px;
+  box-shadow: 0 5px 10px -7px rgba(169, 71, 46, 0.8);
+}
+
+.appOuter.theme-child .screenTitle {
+  font-size: 25px;
+  color: #a9472e;
+}
+
+.appOuter.theme-child .tile,
+.appOuter.theme-child .card,
+.appOuter.theme-child .ageOption {
+  border-radius: 20px;
+}
+
+.appOuter.theme-child .tile {
+  border-width: 1.5px;
+}
+
+.appOuter.theme-child .card {
+  box-shadow: 0 8px 20px -16px rgba(181, 105, 48, 0.7);
+}
+
+.appOuter.theme-child .btnPrimary {
+  border-radius: 16px;
+  box-shadow: 0 8px 14px -10px rgba(169, 71, 46, 0.9);
+}
+
+/* ==========================================================================
+   Theme: teen
+   ========================================================================== */
+
+.appOuter.theme-teen {
+  --bg: #eaf4f7;
+  --surface: #ffffff;
+  --surface-muted: #f2fafb;
+  --ink: #1f3040;
+  --ink-soft: #617181;
+  --brand: #16758e;
+  --brand-dark: #0e5069;
+  --brand-tint: #d7edf2;
+  --target: #218b71;
+  --border: #c9dfe5;
+  --shadow-color: rgba(40, 91, 118, 0.22);
+  --accent: #16758e;
+  background:
+    radial-gradient(circle at 80% 5%, #ffffff 0, transparent 24%),
+    linear-gradient(135deg, #eaf4f7 0%, #f7f0e8 100%);
+}
+
+.appOuter.theme-teen .phone {
+  border-radius: 24px;
+  border-color: #b9d9e1;
+  box-shadow: 0 24px 60px -20px rgba(40, 91, 118, 0.28);
+}
+
+.appOuter.theme-teen .topbar {
+  background: linear-gradient(115deg, #d8f0f4, #e8f4f1);
+}
+
+.appOuter.theme-teen .topbarBrandMark {
+  border-radius: 7px;
+}
+
+.appOuter.theme-teen .screenTitle {
+  font-weight: 700;
+  color: #0e5069;
+}
+
+.appOuter.theme-teen .card {
+  border-radius: 10px;
+  box-shadow: 0 7px 18px -16px rgba(22, 117, 142, 0.8);
+}
+
+.appOuter.theme-teen .tile {
+  border-radius: 10px;
+  box-shadow: 0 7px 18px -16px rgba(22, 117, 142, 0.7);
+}
+
+.appOuter.theme-teen .btnPrimary {
+  border-radius: 8px;
+}
+
+/* ==========================================================================
+   Theme: young adult
+   ========================================================================== */
+
+.appOuter.theme-young_adult {
+  --bg: #f0f4f1;
+  --surface: #ffffff;
+  --surface-muted: #f4f8f5;
+  --ink: #26332d;
+  --ink-soft: #667169;
+  --brand: #176b5b;
+  --brand-dark: #0e4c42;
+  --brand-tint: #dcefea;
+  --target: #2b896a;
+  --border: #d3e0d9;
+  --shadow-color: rgba(38, 51, 45, 0.2);
+  --accent: #d16b4f;
+  background:
+    radial-gradient(circle at 80% 5%, #ffffff 0, transparent 24%),
+    linear-gradient(135deg, #f0f4f1 0%, #e5f0ea 100%);
+}
+
+.appOuter.theme-young_adult .phone {
+  border-color: #c9d9d0;
+  box-shadow: 0 24px 60px -20px rgba(38, 51, 45, 0.25);
+}
+
+.appOuter.theme-young_adult .topbar {
+  background: linear-gradient(115deg, #dcefe8, #f2f1e9);
+}
+
+.appOuter.theme-young_adult .topbarBrandMark {
+  border-radius: 6px;
+}
+
+.appOuter.theme-young_adult .screenTitle {
+  color: #0e4c42;
+}
+
+.appOuter.theme-young_adult .screen {
+  padding-top: 18px;
+}
+
+.appOuter.theme-young_adult .card,
+.appOuter.theme-young_adult .tile {
+  border-radius: 12px;
+}
+
+.appOuter.theme-young_adult .card {
+  box-shadow: 0 6px 16px -16px rgba(38, 51, 45, 0.8);
+}
+
+.appOuter.theme-young_adult .btnPrimary {
+  border-radius: 8px;
+}

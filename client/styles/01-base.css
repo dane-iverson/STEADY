@@ -1,0 +1,60 @@
+/*
+ * 01-base.css
+ * Document reset and the default (neutral) colour tokens.
+ * Load order matters: later files override earlier ones.
+ */
+
+/* ==========================================================================
+   Document
+   ========================================================================== */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  margin: 0;
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* ==========================================================================
+   App shell
+   ========================================================================== */
+
+.appOuter {
+  --bg: #eef4f2;
+  --surface: #ffffff;
+  --surface-muted: #f5faf8;
+  --ink: #1e2a22;
+  --ink-soft: #5b675e;
+  --brand: #176b5b;
+  --brand-dark: #0e4c42;
+  --brand-tint: #dcefea;
+  --target: #2f9e6e;
+  --low: #3e7cb8;
+  --high: #c1622b;
+  --border: #d7e3df;
+  --shadow-color: rgba(22, 67, 58, 0.22);
+  font-family: "DM Sans", sans-serif;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 12%, #ffffff 0, transparent 26%), var(--bg);
+  padding: 28px 12px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.appOuter * {
+  box-sizing: border-box;
+}

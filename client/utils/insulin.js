@@ -17,18 +17,22 @@ const MAX_METER_GLUCOSE = 33.3;
 const MAX_CARBS_G = 300;
 const KETONE_CHECK_GLUCOSE = 14;
 
-// Accepts "6,8" as well as "6.8"; empty input is NaN, not 0.
+/** Converts a field value to a number; blank strings and invalid values become NaN. */
 function toNumber(value) {
   const text = normalizeDecimalInput(value).trim();
   return text === "" ? NaN : Number(text);
 }
 
+/** Returns a finite positive number, or null for invalid and non-positive values. */
 function positiveNumber(value) {
   const number = toNumber(value);
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
-// Linear decay over the insulin action time; an unknown time counts as "just taken".
+/**
+ * Estimates linear active insulin from the last dose and elapsed time.
+ * This is an educational approximation; real insulin action varies by person.
+ */
 export function estimateInsulinOnBoard({ units, hoursAgo, durationHours = 4 }) {
   const dose = toNumber(units);
   if (!Number.isFinite(dose) || dose <= 0) return 0;
@@ -38,6 +42,10 @@ export function estimateInsulinOnBoard({ units, hoursAgo, durationHours = 4 }) {
   return Math.max(0, dose * (1 - hours / duration));
 }
 
+/**
+ * Calculates a meal and correction estimate after applying the calculator's stops.
+ * Returns a setup, incomplete, stop or ready result; ready results include warnings.
+ */
 export function calculateInsulinDose({
   glucose,
   carbs,

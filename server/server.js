@@ -1,3 +1,9 @@
+/**
+ * Steady API entry point.
+ *
+ * Runs as a normal Node server locally (`npm start` in /server) and is also
+ * imported by api/index.js so it can run as a serverless function on Vercel.
+ */
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";

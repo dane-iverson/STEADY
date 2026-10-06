@@ -1,53 +1,25 @@
+/**
+ * Authentication routes: sign up and log in.
+ * Mounted at /api/auth in server.js.
+ */
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createUserDocument, memoryUsers } from "../db.js";
+import { databaseConfigured, jwtSecret } from "../config.js";
+import { ageGroupFromDateOfBirth } from "../utils/age.js";
 
 const router = express.Router();
 
-function databaseConfigured() {
-  return Boolean(
-    process.env.MONGODB_URI && !process.env.MONGODB_URI.includes("placeholder"),
-  );
-}
-
-function ageGroupFromDateOfBirth(dateOfBirth) {
-  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
-  if (
-    !dateOfBirth ||
-    Number.isNaN(birthDate.getTime()) ||
-    birthDate > new Date()
-  ) {
-    return null;
-  }
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const birthday = new Date(
-    today.getFullYear(),
-    birthDate.getMonth(),
-    birthDate.getDate(),
-  );
-  if (birthday > today) age -= 1;
-  if (age <= 12) return "child";
-  if (age <= 18) return "teen";
-  return "young_adult";
-}
-
-export function jwtSecret() {
-  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("JWT_SECRET must be set in production.");
-  }
-  return "steady-dev-secret";
-}
-
+/** Signs a login token that is valid for seven days. */
 function createToken(userId) {
   return jwt.sign({ userId }, jwtSecret(), {
     expiresIn: "7d",
   });
 }
 
+/** The user fields that are safe to send to the browser (no password hash). */
 function sanitizeUser(user) {
   return {
     _id: user._id,
@@ -71,6 +43,7 @@ function sanitizeUser(user) {
   };
 }
 
+// POST /api/auth/signup - creates a patient or caregiver account and returns a token.
 router.post("/signup", async (req, res) => {
   try {
     const {
@@ -179,6 +152,7 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ message: "Signup failed." });
   }
 });
+// POST /api/auth/login - checks the password and returns a token.
 
 router.post("/login", async (req, res) => {
   try {
@@ -193,10 +167,7 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     let user;
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
+    if (databaseConfigured()) {
       user = await User.findOne({ email: normalizedEmail });
     } else {
       user = memoryUsers.find((entry) => entry.email === normalizedEmail);

@@ -60,8 +60,16 @@ test("collects completions by period, reminder and sort order", () => {
       title: "Morning check",
       kind: "Glucose check",
       completionHistory: [
-        { occurrenceAt: "2026-09-20T07:00:00.000Z", completedAt: "2026-09-20T06:50:00.000Z", what: "Checked" },
-        { occurrenceAt: "2026-09-21T07:00:00.000Z", completedAt: "2026-09-21T09:00:00.000Z", what: "Checked late" },
+        {
+          occurrenceAt: "2026-09-20T07:00:00.000Z",
+          completedAt: "2026-09-20T06:50:00.000Z",
+          what: "Checked",
+        },
+        {
+          occurrenceAt: "2026-09-21T07:00:00.000Z",
+          completedAt: "2026-09-21T09:00:00.000Z",
+          what: "Checked late",
+        },
       ],
     },
     {
@@ -69,7 +77,11 @@ test("collects completions by period, reminder and sort order", () => {
       title: "Insulin",
       kind: "Insulin",
       completionHistory: [
-        { occurrenceAt: "2026-08-01T12:00:00.000Z", completedAt: "2026-08-01T12:00:00.000Z", what: "Dose" },
+        {
+          occurrenceAt: "2026-08-01T12:00:00.000Z",
+          completedAt: "2026-08-01T12:00:00.000Z",
+          what: "Dose",
+        },
       ],
     },
   ];
@@ -79,9 +91,14 @@ test("collects completions by period, reminder and sort order", () => {
   };
 
   const newest = collectCompletions(reminders, { dateRange });
-  assert.deepEqual(newest.map((entry) => entry.what), ["Checked late", "Checked"]);
   assert.deepEqual(
-    collectCompletions(reminders, { dateRange, sortBy: "late" }).map((entry) => entry.onTime),
+    newest.map((entry) => entry.what),
+    ["Checked late", "Checked"],
+  );
+  assert.deepEqual(
+    collectCompletions(reminders, { dateRange, sortBy: "late" }).map(
+      (entry) => entry.onTime,
+    ),
     [false, true],
   );
   assert.equal(collectCompletions(reminders, { reminderId: 2 }).length, 1);

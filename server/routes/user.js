@@ -1,33 +1,53 @@
+/**
+ * Signed-in user routes: load and save the profile, connect caregivers and
+ * share items with them. Every route here requires a valid login token.
+ * Mounted at /api/user in server.js.
+ */
 import express from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
-import { createUserDocument, memoryUsers } from "../db.js";
-import { jwtSecret } from "./auth.js";
+import { memoryUsers } from "../db.js";
+import { databaseConfigured, jwtSecret } from "../config.js";
+import { ageGroupFromDateOfBirth } from "../utils/age.js";
 
 const router = express.Router();
 
-function ageGroupFromDateOfBirth(dateOfBirth) {
-  const birthDate = new Date(`${dateOfBirth}T00:00:00`);
-  if (
-    !dateOfBirth ||
-    Number.isNaN(birthDate.getTime()) ||
-    birthDate > new Date()
-  ) {
-    return null;
-  }
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const birthday = new Date(
-    today.getFullYear(),
-    birthDate.getMonth(),
-    birthDate.getDate(),
-  );
-  if (birthday > today) age -= 1;
-  if (age <= 12) return "child";
-  if (age <= 18) return "teen";
-  return "young_adult";
+/** Profile used when a user has not saved one yet. Returns a fresh object each time. */
+function defaultProfile() {
+  return {
+    name: "",
+    surname: "",
+    height: "",
+    weight: "",
+    gender: "",
+    otherMedication: "",
+    allergies: "",
+    dateOfBirth: "",
+    status: "Type 1 diabetes",
+    contactName: "",
+    contactNumber: "",
+    hba1c: "",
+    hba1cDate: "",
+    glucoseRanges: { veryLowMax: 3, lowMax: 4, targetMax: 7.8, highMax: 14 },
+  };
 }
 
+/** Caregiver-sharing settings used before the user changes anything. */
+function defaultSharing() {
+  return {
+    on: false,
+    perms: { glucose: true, trends: false, reminders: false, hba1c: false },
+    caregivers: [],
+    sharedItems: [],
+  };
+}
+
+/** True for accounts that can receive shared items. */
+function isCaregiverAccount(user) {
+  return user.accountType === "caregiver" || user.ageGroup === "caregiver";
+}
+
+/** The user fields that are safe to send to the browser (no password hash). */
 function sanitizeUser(user) {
   return {
     _id: user._id,
@@ -39,31 +59,12 @@ function sanitizeUser(user) {
     reminders: user.reminders || [],
     sharedItems: user.sharedItems || [],
     insulinSettings: user.insulinSettings || {},
-    profile: user.profile || {
-      name: "",
-      surname: "",
-      height: "",
-      weight: "",
-      gender: "",
-      otherMedication: "",
-      allergies: "",
-      dateOfBirth: "",
-      status: "Type 1 diabetes",
-      contactName: "",
-      contactNumber: "",
-      hba1c: "",
-      hba1cDate: "",
-      glucoseRanges: { veryLowMax: 3, lowMax: 4, targetMax: 7.8, highMax: 14 },
-    },
-    sharing: user.sharing || {
-      on: false,
-      perms: { glucose: true, trends: false, reminders: false, hba1c: false },
-      caregivers: [],
-      sharedItems: [],
-    },
+    profile: user.profile || defaultProfile(),
+    sharing: user.sharing || defaultSharing(),
   };
 }
 
+/** Express middleware: reads the Bearer token and sets `req.userId`. */
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
@@ -75,21 +76,19 @@ function requireAuth(req, res, next) {
     const payload = jwt.verify(token, jwtSecret());
     req.userId = payload.userId;
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: "Invalid auth token." });
   }
 }
 
 router.use(requireAuth);
 
+// GET /api/user/me - returns the signed-in user's saved data.
 router.get("/me", async (req, res) => {
   try {
     let user;
 
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
+    if (databaseConfigured()) {
       user = await User.findById(req.userId);
     } else {
       user = memoryUsers.find((entry) => entry._id === req.userId);
@@ -100,11 +99,12 @@ router.get("/me", async (req, res) => {
     }
 
     res.json({ user: sanitizeUser(user) });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Could not load profile." });
   }
 });
 
+// PUT /api/user/me - saves readings, reminders, profile and settings.
 router.put("/me", async (req, res) => {
   try {
     const updates = req.body || {};
@@ -116,40 +116,12 @@ router.put("/me", async (req, res) => {
       readings: Array.isArray(updates.readings) ? updates.readings : [],
       reminders: Array.isArray(updates.reminders) ? updates.reminders : [],
       insulinSettings: updates.insulinSettings || {},
-      profile: updates.profile || {
-        name: "",
-        surname: "",
-        height: "",
-        weight: "",
-        gender: "",
-        otherMedication: "",
-        allergies: "",
-        dateOfBirth: "",
-        status: "Type 1 diabetes",
-        contactName: "",
-        contactNumber: "",
-        hba1c: "",
-        hba1cDate: "",
-        glucoseRanges: {
-          veryLowMax: 3,
-          lowMax: 4,
-          targetMax: 7.8,
-          highMax: 14,
-        },
-      },
-      sharing: updates.sharing || {
-        on: false,
-        perms: { glucose: true, trends: false, reminders: false, hba1c: false },
-        caregivers: [],
-        sharedItems: [],
-      },
+      profile: updates.profile || defaultProfile(),
+      sharing: updates.sharing || defaultSharing(),
     };
 
     let user;
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
+    if (databaseConfigured()) {
       user = await User.findByIdAndUpdate(req.userId, safeUpdate, {
         new: true,
       });
@@ -167,11 +139,12 @@ router.put("/me", async (req, res) => {
     }
 
     res.json({ user: sanitizeUser(user) });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Could not save profile." });
   }
 });
 
+// POST /api/user/caregivers - checks that a caregiver account exists for an email.
 router.post("/caregivers", async (req, res) => {
   try {
     const normalizedEmail = req.body?.caregiverEmail?.trim().toLowerCase();
@@ -180,10 +153,7 @@ router.post("/caregivers", async (req, res) => {
     }
 
     let caregiver;
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
+    if (databaseConfigured()) {
       caregiver = await User.findOne({
         email: normalizedEmail,
         $or: [{ accountType: "caregiver" }, { ageGroup: "caregiver" }],
@@ -192,7 +162,7 @@ router.post("/caregivers", async (req, res) => {
       caregiver = memoryUsers.find(
         (entry) =>
           entry.email?.trim().toLowerCase() === normalizedEmail &&
-          (entry.accountType === "caregiver" || entry.ageGroup === "caregiver"),
+          isCaregiverAccount(entry),
       );
     }
 
@@ -209,11 +179,12 @@ router.post("/caregivers", async (req, res) => {
         email: caregiver.email,
       },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Could not check caregiver account." });
   }
 });
 
+// POST /api/user/share - places an item in a caregiver's inbox.
 router.post("/share", async (req, res) => {
   try {
     const { caregiverEmail, item } = req.body || {};
@@ -226,10 +197,7 @@ router.post("/share", async (req, res) => {
 
     let patient;
     let caregiver;
-    if (
-      process.env.MONGODB_URI &&
-      !process.env.MONGODB_URI.includes("placeholder")
-    ) {
+    if (databaseConfigured()) {
       patient = await User.findById(req.userId);
       caregiver = await User.findOne({
         email: normalizedEmail,
@@ -253,7 +221,7 @@ router.post("/share", async (req, res) => {
       caregiver = memoryUsers.find(
         (entry) =>
           entry.email?.trim().toLowerCase() === normalizedEmail &&
-          (entry.accountType === "caregiver" || entry.ageGroup === "caregiver"),
+          isCaregiverAccount(entry),
       );
       if (!caregiver)
         return res
@@ -269,7 +237,7 @@ router.post("/share", async (req, res) => {
       ];
     }
     res.status(201).json({ item });
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Could not share the item." });
   }
 });
