@@ -6,31 +6,45 @@
  * so it is only suitable for local development.
  */
 import mongoose from "mongoose";
+import { setDatabaseAvailable } from "./config.js";
 
 /** Users held in memory when MongoDB is not configured. */
 export const memoryUsers = [];
+export const memoryConnections = [];
 
 /** Connects to MongoDB if possible and reports whether the in-memory fallback is in use. */
 export async function connectDatabase() {
   const mongoUri = process.env.MONGODB_URI;
 
   if (!mongoUri) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("MONGODB_URI must be configured in production.");
+    }
+    setDatabaseAvailable(false);
     return { connected: false, useMemory: true };
   }
 
   if (mongoose.connection.readyState === 1) {
+    setDatabaseAvailable(true);
     return { connected: true, useMemory: false };
   }
 
   try {
     await mongoose.connect(mongoUri);
+    setDatabaseAvailable(true);
     console.log("MongoDB connected");
     return { connected: true, useMemory: false };
   } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("MongoDB connection is required in production.", {
+        cause: error,
+      });
+    }
     console.warn(
       "MongoDB unavailable, using in-memory fallback. Set MONGODB_URI in server/.env to connect to MongoDB.",
     );
     console.warn(error.message);
+    setDatabaseAvailable(false);
     return { connected: false, useMemory: true };
   }
 }

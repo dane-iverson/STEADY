@@ -99,11 +99,39 @@ const defaultSharing = {
   sharedItems: [],
 };
 
+const VALID_SCREENS = new Set([
+  "welcome",
+  "auth",
+  "dashboard",
+  "glucose",
+  "glucoseHistory",
+  "trends",
+  "reminders",
+  "education",
+  "emergency",
+  "profile",
+  "insulinCalculator",
+  "caregiverInbox",
+]);
+
+function screenFromLocation() {
+  const requestedScreen = window.location.hash.slice(2);
+  return VALID_SCREENS.has(requestedScreen) ? requestedScreen : "welcome";
+}
+
 export default function App() {
-  const [screen, setScreen] = useState("welcome");
   const [token, setToken] = useState(
     sessionStorage.getItem("steady-token") || "",
   );
+  const [isPrototype, setIsPrototype] = useState(
+    sessionStorage.getItem("steady-prototype") === "true",
+  );
+  const [screen, setScreenState] = useState(() => {
+    const storedToken = sessionStorage.getItem("steady-token");
+    const storedPrototype =
+      sessionStorage.getItem("steady-prototype") === "true";
+    return storedToken || storedPrototype ? screenFromLocation() : "welcome";
+  });
   const [ageGroup, setAgeGroup] = useState("teen");
   const [name, setName] = useState("");
   const [online, setOnline] = useState(true);
@@ -117,9 +145,75 @@ export default function App() {
   );
   const [accountType, setAccountType] = useState("patient");
   const [sharedItems, setSharedItems] = useState([]);
-  const [isPrototype, setIsPrototype] = useState(false);
+  const [connectionRequests, setConnectionRequests] = useState({
+    received: [],
+    sent: [],
+    connected: [],
+  });
   const [analyticsConsent, setAnalyticsConsentState] =
     useState(getAnalyticsConsent);
+
+  function setScreen(nextScreen, { replace = false } = {}) {
+    if (!VALID_SCREENS.has(nextScreen)) return;
+    if (
+      !replace &&
+      nextScreen === screen &&
+      screenFromLocation() === nextScreen
+    ) {
+      return;
+    }
+    setScreenState(nextScreen);
+    const nextUrl = `${window.location.pathname}${window.location.search}#/${nextScreen}`;
+    const updateHistory = replace ? "replaceState" : "pushState";
+    window.history[updateHistory]({ screen: nextScreen }, "", nextUrl);
+  }
+
+  useEffect(() => {
+    if (!token && !isPrototype && !["welcome", "auth"].includes(screen)) {
+      setScreenState("welcome");
+      window.history.replaceState(
+        { screen: "welcome" },
+        "",
+        `${window.location.pathname}${window.location.search}#/welcome`,
+      );
+      return;
+    }
+    if (!window.location.hash) {
+      window.history.replaceState(
+        { screen },
+        "",
+        `${window.location.pathname}${window.location.search}#/${screen}`,
+      );
+    }
+    const handlePopState = () => {
+      const requestedScreen = screenFromLocation();
+      if (accountType === "caregiver" && requestedScreen !== "caregiverInbox") {
+        setScreenState("caregiverInbox");
+        window.history.replaceState(
+          { screen: "caregiverInbox" },
+          "",
+          `${window.location.pathname}${window.location.search}#/caregiverInbox`,
+        );
+        return;
+      }
+      setScreenState(requestedScreen);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [accountType, isPrototype, screen, token]);
+
+  useEffect(() => {
+    if (!isPrototype) return;
+    const data = buildPrototypeData(
+      sessionStorage.getItem("steady-prototype-group") || "teen",
+    );
+    setName(data.name);
+    setAgeGroup(data.ageGroup);
+    setReadings(data.readings);
+    setReminders(data.reminders);
+    setProfile(data.profile);
+    setInsulinSettings(data.insulinSettings);
+  }, [isPrototype]);
 
   // Restore the signed-in user's saved data when a tab session is reopened.
   useEffect(() => {
@@ -138,17 +232,26 @@ export default function App() {
         if (!response.ok) {
           sessionStorage.removeItem("steady-token");
           setToken("");
-          setScreen("welcome");
+          setScreen("welcome", { replace: true });
           return;
         }
 
         const payload = await response.json();
         hydrateFromUser(payload.user);
-        setScreen(
+        const connectionResponse = await fetch(`${API_BASE}/user/connections`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (connectionResponse.ok) {
+          setConnectionRequests(await connectionResponse.json());
+        }
+        const requestedScreen = screenFromLocation();
+        const restoredScreen =
           payload.user?.accountType === "caregiver"
             ? "caregiverInbox"
-            : "dashboard",
-        );
+            : ["welcome", "auth", "caregiverInbox"].includes(requestedScreen)
+              ? "dashboard"
+              : requestedScreen;
+        setScreen(restoredScreen, { replace: true });
       } catch (error) {
         console.error("Failed to load user profile.", error);
       }
@@ -158,8 +261,24 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
+    if (!token) return;
+    const refreshConnections = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/user/connections`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) setConnectionRequests(await response.json());
+      } catch {
+        // A transient refresh failure should not interrupt the current screen.
+      }
+    };
+    const interval = window.setInterval(refreshConnections, 30000);
+    return () => window.clearInterval(interval);
+  }, [token]);
+
+  useEffect(() => {
     if (accountType === "caregiver" && screen !== "caregiverInbox") {
-      setScreen("caregiverInbox");
+      setScreen("caregiverInbox", { replace: true });
     }
   }, [accountType, screen]);
 
@@ -217,6 +336,62 @@ export default function App() {
     if (!response.ok) throw new Error("Could not refresh the inbox.");
     const payload = await response.json();
     hydrateFromUser(payload.user);
+    const connectionsResponse = await fetch(`${API_BASE}/user/connections`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (connectionsResponse.ok) {
+      setConnectionRequests(await connectionsResponse.json());
+    }
+  }
+
+  async function requestConnection(email) {
+    const response = await fetch(`${API_BASE}/user/connections`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok)
+      throw new Error(payload.message || "Could not send request.");
+    await refreshUserState();
+    return payload;
+  }
+
+  async function respondToConnection(connectionId, decision) {
+    const response = await fetch(
+      `${API_BASE}/user/connections/${connectionId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ decision }),
+      },
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.message || "Could not update request.");
+    }
+    await refreshUserState();
+    return payload;
+  }
+
+  async function revokeConnection(connectionId) {
+    const response = await fetch(
+      `${API_BASE}/user/connections/${connectionId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok)
+      throw new Error(payload.message || "Could not remove pairing.");
+    await refreshUserState();
   }
 
   // API actions used by the profile and caregiver inbox screens.
@@ -237,23 +412,6 @@ export default function App() {
     return payload.item;
   }
 
-  async function connectCaregiver(caregiverEmail) {
-    if (!token) throw new Error("You need to be signed in to add a caregiver.");
-    const response = await fetch(`${API_BASE}/user/caregivers`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ caregiverEmail }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.message || "Could not add caregiver.");
-    }
-    return payload.caregiver;
-  }
-
   // Session and prototype transitions reset or hydrate all account-scoped state.
   function handleAuthSuccess(user, authToken) {
     sessionStorage.setItem("steady-token", authToken);
@@ -261,10 +419,13 @@ export default function App() {
     hydrateFromUser(user);
     setScreen(
       user?.accountType === "caregiver" ? "caregiverInbox" : "dashboard",
+      { replace: true },
     );
   }
 
   function resetUserState() {
+    sessionStorage.removeItem("steady-prototype");
+    sessionStorage.removeItem("steady-prototype-group");
     setName("");
     setAgeGroup("teen");
     setReadings(defaultReadings);
@@ -274,6 +435,7 @@ export default function App() {
     setInsulinSettings(DEFAULT_INSULIN_SETTINGS);
     setAccountType("patient");
     setSharedItems([]);
+    setConnectionRequests({ received: [], sent: [], connected: [] });
     setOnline(true);
     setIsPrototype(false);
     setEditingReading(null);
@@ -282,6 +444,9 @@ export default function App() {
   function startPrototype(group) {
     const data = buildPrototypeData(group);
     resetUserState();
+    sessionStorage.setItem("steady-prototype", "true");
+    sessionStorage.setItem("steady-prototype-group", group);
+    setIsPrototype(true);
     setName(data.name);
     setAgeGroup(data.ageGroup);
     setReadings(data.readings);
@@ -296,7 +461,8 @@ export default function App() {
     sessionStorage.removeItem("steady-token");
     setToken("");
     resetUserState();
-    setScreen("welcome");
+    setIsPrototype(false);
+    setScreen("welcome", { replace: true });
   }
 
   // Reading mutations update local UI state and save the changed collection.
@@ -450,6 +616,10 @@ export default function App() {
               email="Caregiver account"
               sharedItems={sharedItems}
               onRefresh={refreshUserState}
+              connectionRequests={connectionRequests}
+              onRequestConnection={requestConnection}
+              onRespondToConnection={respondToConnection}
+              onRevokeConnection={revokeConnection}
               onLogout={handleLogout}
             />
           )}
@@ -575,7 +745,10 @@ export default function App() {
                 persistUserState({ sharing: nextSharing });
               }}
               onSendSharedItem={sendSharedItemToCaregiver}
-              onConnectCaregiver={connectCaregiver}
+              connectionRequests={connectionRequests}
+              onRequestConnection={requestConnection}
+              onRespondToConnection={respondToConnection}
+              onRevokeConnection={revokeConnection}
               onBack={() => setScreen("dashboard")}
               onLogout={handleLogout}
             />

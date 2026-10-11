@@ -5,12 +5,21 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 import { User } from "../models/User.js";
 import { createUserDocument, memoryUsers } from "../db.js";
 import { databaseConfigured, jwtSecret } from "../config.js";
 import { ageGroupFromDateOfBirth } from "../utils/age.js";
 
 const router = express.Router();
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Try again later." },
+});
+router.use(authLimiter);
 
 /** Signs a login token that is valid for seven days. */
 function createToken(userId) {
@@ -59,21 +68,26 @@ router.post("/signup", async (req, res) => {
       : ageGroupFromDateOfBirth(profile?.dateOfBirth);
 
     if (
-      !name?.trim() ||
-      !email?.trim() ||
-      !password ||
+      typeof name !== "string" ||
+      !name.trim() ||
+      name.length > 100 ||
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      email.length > 254 ||
+      typeof password !== "string" ||
       !ageGroup ||
-      (isCaregiver && !profile?.surname?.trim())
+      (isCaregiver &&
+        (typeof profile?.surname !== "string" || !profile.surname.trim()))
     ) {
       return res
         .status(400)
         .json({ message: "Name, email and password are required." });
     }
 
-    if (password.length < 6) {
+    if (password.length < 12 || password.length > 128) {
       return res
         .status(400)
-        .json({ message: "Password must be at least 6 characters." });
+        .json({ message: "Password must be between 12 and 128 characters." });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -158,7 +172,13 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email?.trim() || !password) {
+    if (
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      email.length > 254 ||
+      typeof password !== "string" ||
+      password.length > 128
+    ) {
       return res
         .status(400)
         .json({ message: "Email and password are required." });

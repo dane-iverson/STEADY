@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
+  Check,
   ChevronLeft,
   ChevronRight,
   Droplet,
@@ -9,6 +10,9 @@ import {
   Percent,
   RefreshCw,
   TrendingUp,
+  User,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { Card } from "../components/Card";
 
@@ -123,7 +127,11 @@ export function CaregiverInboxPage({
   name,
   email,
   sharedItems = [],
+  connectionRequests = { received: [], sent: [], connected: [] },
   onRefresh,
+  onRequestConnection,
+  onRespondToConnection,
+  onRevokeConnection,
   onLogout,
 }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -132,6 +140,9 @@ export function CaregiverInboxPage({
   const [filterType, setFilterType] = useState("all");
   const [expanded, setExpanded] = useState(false);
   const [page, setPage] = useState(0);
+  const [connectionEmail, setConnectionEmail] = useState("");
+  const [connectionMessage, setConnectionMessage] = useState("");
+  const [connectionBusy, setConnectionBusy] = useState(false);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -151,6 +162,48 @@ export function CaregiverInboxPage({
       setRefreshMessage(error.message);
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function sendPairingRequest() {
+    setConnectionBusy(true);
+    setConnectionMessage("");
+    try {
+      await onRequestConnection?.(connectionEmail.trim());
+      setConnectionEmail("");
+      setConnectionMessage("Pairing request sent.");
+    } catch (error) {
+      setConnectionMessage(error.message);
+    } finally {
+      setConnectionBusy(false);
+    }
+  }
+
+  async function respondToRequest(id, decision) {
+    setConnectionBusy(true);
+    setConnectionMessage("");
+    try {
+      await onRespondToConnection?.(id, decision);
+      setConnectionMessage(
+        decision === "accept" ? "Pairing accepted." : "Request declined.",
+      );
+    } catch (error) {
+      setConnectionMessage(error.message);
+    } finally {
+      setConnectionBusy(false);
+    }
+  }
+
+  async function removePairing(id) {
+    setConnectionBusy(true);
+    setConnectionMessage("");
+    try {
+      await onRevokeConnection?.(id);
+      setConnectionMessage("Pairing removed.");
+    } catch (error) {
+      setConnectionMessage(error.message);
+    } finally {
+      setConnectionBusy(false);
     }
   }
 
@@ -213,6 +266,106 @@ export function CaregiverInboxPage({
           <span>Read-only access to updates shared with you</span>
         </div>
       </div>
+
+      <Card className="caregiverConnectionPanel">
+        <div className="sectionKicker">PATIENT PAIRING</div>
+        <h3>Connect with a patient</h3>
+        <p className="mutedSmall">
+          Both accounts must accept a request. Patients choose what health data
+          to share after pairing.
+        </p>
+        <div className="caregiverInviteRow">
+          <input
+            className="textInput"
+            type="email"
+            value={connectionEmail}
+            onChange={(event) => setConnectionEmail(event.target.value)}
+            placeholder="patient@example.com"
+            aria-label="Patient account email"
+          />
+          <button
+            className="btnPrimary caregiverInviteButton"
+            type="button"
+            onClick={sendPairingRequest}
+            disabled={!connectionEmail.includes("@") || connectionBusy}
+          >
+            <UserPlus size={15} /> Request
+          </button>
+        </div>
+        {connectionRequests.received.map((request) => (
+          <div className="caregiverConnection" key={request.id}>
+            <div className="caregiverConnectionIdentity">
+              <div className="caregiverAvatar">
+                <User size={15} />
+              </div>
+              <div>
+                <strong>{request.user.name}</strong>
+                <span>{request.user.email} requested to pair</span>
+              </div>
+            </div>
+            <div className="rowGap">
+              <button
+                className="iconBtn"
+                type="button"
+                disabled={connectionBusy}
+                onClick={() => respondToRequest(request.id, "decline")}
+                aria-label={`Decline request from ${request.user.email}`}
+              >
+                <X size={15} />
+              </button>
+              <button
+                className="iconBtn"
+                type="button"
+                disabled={connectionBusy}
+                onClick={() => respondToRequest(request.id, "accept")}
+                aria-label={`Accept request from ${request.user.email}`}
+              >
+                <Check size={15} />
+              </button>
+            </div>
+          </div>
+        ))}
+        {connectionRequests.sent.map((request) => (
+          <div className="caregiverConnection" key={request.id}>
+            <div className="caregiverConnectionIdentity">
+              <div className="caregiverAvatar">
+                <User size={15} />
+              </div>
+              <div>
+                <strong>{request.user.name}</strong>
+                <span>{request.user.email} · Request pending</span>
+              </div>
+            </div>
+          </div>
+        ))}
+        {connectionRequests.connected.map((connection) => (
+          <div className="caregiverConnection" key={connection.id}>
+            <div className="caregiverConnectionIdentity">
+              <div className="caregiverAvatar">
+                <User size={15} />
+              </div>
+              <div>
+                <strong>{connection.user.name}</strong>
+                <span>{connection.user.email} · Paired</span>
+              </div>
+            </div>
+            <button
+              className="iconBtn"
+              type="button"
+              disabled={connectionBusy}
+              onClick={() => removePairing(connection.id)}
+              aria-label={`Remove pairing with ${connection.user.email}`}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        ))}
+        {connectionMessage && (
+          <div className="dateFieldHint" role="status">
+            {connectionMessage}
+          </div>
+        )}
+      </Card>
 
       <div className="sectionHeading caregiverInboxHeading">
         <div>

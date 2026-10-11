@@ -82,7 +82,10 @@ export function ProfilePage({
   sharing,
   setSharing,
   onSendSharedItem,
-  onConnectCaregiver,
+  connectionRequests = { received: [], sent: [], connected: [] },
+  onRequestConnection,
+  onRespondToConnection,
+  onRevokeConnection,
   onBack,
   onLogout,
   prototype = false,
@@ -91,6 +94,7 @@ export function ProfilePage({
   const [editingPersonalInfo, setEditingPersonalInfo] = useState(false);
   const [editingGlucoseRanges, setEditingGlucoseRanges] = useState(false);
   const [editingHba1c, setEditingHba1c] = useState(false);
+  const [editingEmergencyContact, setEditingEmergencyContact] = useState(false);
   const [draftProfile, setDraftProfile] = useState(profile);
   const [draftGlucoseRanges, setDraftGlucoseRanges] = useState(
     profile.glucoseRanges || DEFAULT_GLUCOSE_RANGE_LIMITS,
@@ -98,6 +102,10 @@ export function ProfilePage({
   const [draftHba1c, setDraftHba1c] = useState({
     hba1c: profile.hba1c || "",
     hba1cDate: profile.hba1cDate || "",
+  });
+  const [draftEmergencyContact, setDraftEmergencyContact] = useState({
+    contactName: profile.contactName || "",
+    contactNumber: profile.contactNumber || "",
   });
   const [caregiverEmail, setCaregiverEmail] = useState("");
   const [shareType, setShareType] = useState("glucose");
@@ -112,6 +120,7 @@ export function ProfilePage({
   const [reminderShareId, setReminderShareId] = useState("all");
   const [sharingMessage, setSharingMessage] = useState("");
   const [sharingBusy, setSharingBusy] = useState(false);
+  const [requestBusy, setRequestBusy] = useState(false);
 
   useEffect(() => {
     setDraftProfile(profile);
@@ -122,6 +131,10 @@ export function ProfilePage({
     setDraftHba1c({
       hba1c: profile.hba1c || "",
       hba1cDate: profile.hba1cDate || "",
+    });
+    setDraftEmergencyContact({
+      contactName: profile.contactName || "",
+      contactNumber: profile.contactNumber || "",
     });
   }, [profile]);
 
@@ -158,6 +171,11 @@ export function ProfilePage({
     setEditingHba1c(false);
   }
 
+  function saveEmergencyContact() {
+    setProfile({ ...profile, ...draftEmergencyContact });
+    setEditingEmergencyContact(false);
+  }
+
   const caregivers = sharing.caregivers || [];
   const sharedItems = sharing.sharedItems || [];
 
@@ -185,31 +203,16 @@ export function ProfilePage({
   const shareBlocked =
     shareType === "reminders" && sharedCompletions.length === 0;
 
-  async function addCaregiver() {
+  async function requestCaregiverPairing() {
     const email = caregiverEmail.trim().toLowerCase();
     if (!email || !email.includes("@")) return;
     if (caregivers.some((caregiver) => caregiver.email === email)) return;
     setSharingBusy(true);
     setSharingMessage("");
     try {
-      const caregiver = await onConnectCaregiver?.(email);
-      setSharing({
-        ...sharing,
-        on: true,
-        caregivers: [
-          ...caregivers,
-          {
-            id: caregiver?._id || `caregiver-${Date.now()}`,
-            email,
-            name: caregiver?.name || "",
-            status: "connected",
-            addedAt: new Date().toISOString(),
-            permissions: { ...sharing.perms },
-          },
-        ],
-      });
+      await onRequestConnection?.(email);
       setCaregiverEmail("");
-      setSharingMessage("Caregiver account connected.");
+      setSharingMessage("Pairing request sent.");
     } catch (error) {
       setSharingMessage(error.message);
     } finally {
@@ -217,11 +220,37 @@ export function ProfilePage({
     }
   }
 
-  function removeCaregiver(id) {
-    setSharing({
-      ...sharing,
-      caregivers: caregivers.filter((caregiver) => caregiver.id !== id),
-    });
+  async function respondToPairing(id, decision) {
+    setRequestBusy(true);
+    setSharingMessage("");
+    try {
+      await onRespondToConnection?.(id, decision);
+      setSharingMessage(
+        decision === "accept"
+          ? "Pairing request accepted."
+          : "Request declined.",
+      );
+    } catch (error) {
+      setSharingMessage(error.message);
+    } finally {
+      setRequestBusy(false);
+    }
+  }
+
+  async function removeCaregiver(caregiver) {
+    const connection = connectionRequests.connected.find(
+      (entry) => entry.user.email === caregiver.email,
+    );
+    if (!connection) return;
+    setRequestBusy(true);
+    try {
+      await onRevokeConnection?.(connection.id);
+      setSharingMessage("Pairing removed.");
+    } catch (error) {
+      setSharingMessage(error.message);
+    } finally {
+      setRequestBusy(false);
+    }
   }
 
   // Build the selected report from current profile data, then deliver it to caregivers.
@@ -827,27 +856,88 @@ export function ProfilePage({
             onChange={(e) => setProfile({ ...profile, status: e.target.value })}
           />
 
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            Emergency contact name
-          </label>
-          <input
-            className="textInput"
-            value={profile.contactName}
-            onChange={(e) =>
-              setProfile({ ...profile, contactName: e.target.value })
-            }
-          />
-
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            Emergency contact number
-          </label>
-          <input
-            className="textInput"
-            value={profile.contactNumber}
-            onChange={(e) =>
-              setProfile({ ...profile, contactNumber: e.target.value })
-            }
-          />
+          <div className="sectionHeading" style={{ marginTop: 16 }}>
+            <div>
+              <div className="fieldLabel">Emergency contact</div>
+              {!editingEmergencyContact && (
+                <div className="mutedSmall">
+                  {displayValue(profile.contactName)} ·{" "}
+                  {displayValue(profile.contactNumber)}
+                </div>
+              )}
+            </div>
+            {!editingEmergencyContact && (
+              <button
+                className="iconBtn"
+                type="button"
+                onClick={() => setEditingEmergencyContact(true)}
+                aria-label="Edit emergency contact"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+          </div>
+          {editingEmergencyContact && (
+            <div className="profileEditForm">
+              <label className="fieldLabel" htmlFor="emergency-contact-name">
+                Contact name
+              </label>
+              <input
+                id="emergency-contact-name"
+                className="textInput"
+                value={draftEmergencyContact.contactName}
+                onChange={(event) =>
+                  setDraftEmergencyContact({
+                    ...draftEmergencyContact,
+                    contactName: event.target.value,
+                  })
+                }
+                maxLength={100}
+              />
+              <label
+                className="fieldLabel"
+                htmlFor="emergency-contact-number"
+                style={{ marginTop: 12 }}
+              >
+                Contact number
+              </label>
+              <input
+                id="emergency-contact-number"
+                className="textInput"
+                type="tel"
+                value={draftEmergencyContact.contactNumber}
+                onChange={(event) =>
+                  setDraftEmergencyContact({
+                    ...draftEmergencyContact,
+                    contactNumber: event.target.value,
+                  })
+                }
+                maxLength={40}
+              />
+              <div className="profileEditActions">
+                <button
+                  className="btnGhost"
+                  type="button"
+                  onClick={() => {
+                    setDraftEmergencyContact({
+                      contactName: profile.contactName || "",
+                      contactNumber: profile.contactNumber || "",
+                    });
+                    setEditingEmergencyContact(false);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btnPrimary"
+                  type="button"
+                  onClick={saveEmergencyContact}
+                >
+                  <Check size={16} /> Save contact
+                </button>
+              </div>
+            </div>
+          )}
 
           <Card style={{ marginTop: 14 }}>
             <div className="rowGap">
@@ -891,33 +981,98 @@ export function ProfilePage({
             </div>
           </Card>
 
+          <div className="caregiverConnectionPanel">
+            <div className="sectionKicker">PAIRING</div>
+            <h3>Request a caregiver connection</h3>
+            <p className="mutedSmall">
+              Both accounts must accept. Health information stays private until
+              you enable sharing and select what to send.
+            </p>
+            <div className="caregiverInviteRow">
+              <input
+                className="textInput"
+                type="email"
+                value={caregiverEmail}
+                onChange={(event) => setCaregiverEmail(event.target.value)}
+                placeholder="caregiver@example.com"
+                aria-label="Account email to pair with"
+              />
+              <button
+                className="btnPrimary caregiverInviteButton"
+                type="button"
+                onClick={requestCaregiverPairing}
+                disabled={!caregiverEmail.includes("@") || sharingBusy}
+              >
+                <UserPlus size={15} /> {sharingBusy ? "Sending..." : "Request"}
+              </button>
+            </div>
+          </div>
+
+          {(connectionRequests.received.length > 0 ||
+            connectionRequests.sent.length > 0) && (
+            <Card style={{ marginTop: 10 }}>
+              <div className="sectionKicker">PAIRING REQUESTS</div>
+              {connectionRequests.received.map((request) => (
+                <div className="caregiverConnection" key={request.id}>
+                  <div className="caregiverConnectionIdentity">
+                    <div className="caregiverAvatar">
+                      <User size={15} />
+                    </div>
+                    <div>
+                      <strong>{request.user.name}</strong>
+                      <span>{request.user.email} requested to pair</span>
+                    </div>
+                  </div>
+                  <div className="profileEditActions">
+                    <button
+                      className="btnGhost"
+                      type="button"
+                      disabled={requestBusy}
+                      onClick={() => respondToPairing(request.id, "decline")}
+                    >
+                      Decline
+                    </button>
+                    <button
+                      className="btnPrimary"
+                      type="button"
+                      disabled={requestBusy}
+                      onClick={() => respondToPairing(request.id, "accept")}
+                    >
+                      Accept
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {connectionRequests.sent.map((request) => (
+                <div className="caregiverConnection" key={request.id}>
+                  <div className="caregiverConnectionIdentity">
+                    <div className="caregiverAvatar">
+                      <User size={15} />
+                    </div>
+                    <div>
+                      <strong>{request.user.name}</strong>
+                      <span>{request.user.email} · Request pending</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          )}
+
+          {sharingMessage && (
+            <div className="dateFieldHint" role="status">
+              {sharingMessage}
+            </div>
+          )}
+
           {sharing.on && (
             <>
               <div className="caregiverConnectionPanel">
                 <div className="sectionKicker">CAREGIVER ACCOUNT</div>
-                <h3>Add a caregiver</h3>
+                <h3>Connected caregivers</h3>
                 <p className="mutedSmall">
-                  Use the email address they used for their caregiver account.
-                  Health information stays inside the app.
+                  Removing a pairing also stops future sharing.
                 </p>
-                <div className="caregiverInviteRow">
-                  <input
-                    className="textInput"
-                    type="email"
-                    value={caregiverEmail}
-                    onChange={(event) => setCaregiverEmail(event.target.value)}
-                    placeholder="caregiver@example.com"
-                    aria-label="Caregiver account email"
-                  />
-                  <button
-                    className="btnPrimary caregiverInviteButton"
-                    type="button"
-                    onClick={addCaregiver}
-                    disabled={!caregiverEmail.includes("@") || sharingBusy}
-                  >
-                    <UserPlus size={15} /> {sharingBusy ? "Checking..." : "Add"}
-                  </button>
-                </div>
                 {caregivers.map((caregiver) => (
                   <div className="caregiverConnection" key={caregiver.id}>
                     <div className="caregiverConnectionIdentity">
@@ -932,7 +1087,8 @@ export function ProfilePage({
                     <button
                       className="iconBtn"
                       type="button"
-                      onClick={() => removeCaregiver(caregiver.id)}
+                      onClick={() => removeCaregiver(caregiver)}
+                      disabled={requestBusy}
                       aria-label={`Remove caregiver ${caregiver.email}`}
                     >
                       <Trash2 size={15} />

@@ -2,14 +2,18 @@
  * Runtime configuration helpers shared by the route files.
  */
 
+let mongoAvailable = false;
+
 /**
  * True when a real MongoDB connection string is configured.
  * Without one the API falls back to the in-memory user list in db.js.
  */
 export function databaseConfigured() {
-  return Boolean(
-    process.env.MONGODB_URI && !process.env.MONGODB_URI.includes("placeholder"),
-  );
+  return mongoAvailable;
+}
+
+export function setDatabaseAvailable(available) {
+  mongoAvailable = available;
 }
 
 /**
@@ -22,4 +26,18 @@ export function jwtSecret() {
     throw new Error("JWT_SECRET must be set in production.");
   }
   return "steady-dev-secret";
+}
+
+export function validateProductionConfig() {
+  if (process.env.NODE_ENV !== "production") return;
+  jwtSecret();
+  if (
+    !process.env.MONGODB_URI ||
+    process.env.MONGODB_URI.includes("placeholder")
+  ) {
+    throw new Error("MONGODB_URI must be configured in production.");
+  }
+  if (!process.env.CLIENT_URL) {
+    throw new Error("CLIENT_URL must be configured in production.");
+  }
 }

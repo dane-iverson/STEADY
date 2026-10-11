@@ -115,6 +115,13 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
       setError("Passwords do not match.");
       return;
     }
+    if (
+      mode === "signup" &&
+      (form.password.length < 12 || form.password.length > 128)
+    ) {
+      setError("Password must be between 12 and 128 characters.");
+      return;
+    }
     if (mode === "signup") {
       if (!termsAccepted) {
         setError(
@@ -369,10 +376,12 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
           autoComplete={mode === "login" ? "current-password" : "new-password"}
           className="textInput"
           type="password"
+          minLength={mode === "signup" ? 12 : undefined}
+          maxLength={128}
           value={form.password}
           onChange={(e) => updateField("password", e.target.value)}
           placeholder={
-            mode === "login" ? "Your password" : "At least 6 characters"
+            mode === "login" ? "Your password" : "At least 12 characters"
           }
         />
 

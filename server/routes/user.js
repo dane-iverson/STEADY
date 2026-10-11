@@ -5,12 +5,151 @@
  */
 import express from "express";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 import { User } from "../models/User.js";
-import { memoryUsers } from "../db.js";
+import { memoryConnections, memoryUsers } from "../db.js";
+import { Connection } from "../models/Connection.js";
 import { databaseConfigured, jwtSecret } from "../config.js";
 import { ageGroupFromDateOfBirth } from "../utils/age.js";
 
 const router = express.Router();
+const caregiverLookupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+const shareLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+});
+const SHARE_TYPES = new Set(["glucose", "trends", "reminders", "hba1c"]);
+const CAREGIVER_INBOX_LIMIT = 200;
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function validString(value, maxLength) {
+  return typeof value === "string" && value.length <= maxLength;
+}
+
+function cleanProfile(profile) {
+  const textFields = [
+    "name",
+    "surname",
+    "height",
+    "weight",
+    "gender",
+    "otherMedication",
+    "allergies",
+    "dateOfBirth",
+    "status",
+    "contactName",
+    "contactNumber",
+    "hba1c",
+    "hba1cDate",
+  ];
+  if (!isPlainObject(profile)) return null;
+  const cleaned = defaultProfile();
+  for (const field of textFields) {
+    const value = profile[field] ?? cleaned[field];
+    if (!validString(value, 500)) return null;
+    cleaned[field] = value;
+  }
+  const ranges = profile.glucoseRanges ?? cleaned.glucoseRanges;
+  if (!isPlainObject(ranges)) return null;
+  const limits = ["veryLowMax", "lowMax", "targetMax", "highMax"].map((key) =>
+    Number(ranges[key] ?? cleaned.glucoseRanges[key]),
+  );
+  if (
+    !limits.every(
+      (value) => Number.isFinite(value) && value > 0 && value <= 40,
+    ) ||
+    !limits.every((value, index) => index === 0 || value > limits[index - 1])
+  ) {
+    return null;
+  }
+  cleaned.glucoseRanges = Object.fromEntries(
+    ["veryLowMax", "lowMax", "targetMax", "highMax"].map((key, index) => [
+      key,
+      limits[index],
+    ]),
+  );
+  return cleaned;
+}
+
+function cleanSharing(sharing) {
+  if (!isPlainObject(sharing) || typeof sharing.on !== "boolean") return null;
+  if (!isPlainObject(sharing.perms)) return null;
+  const permissionKeys = [...SHARE_TYPES];
+  if (
+    !permissionKeys.every(
+      (key) =>
+        sharing.perms[key] === undefined ||
+        typeof sharing.perms[key] === "boolean",
+    )
+  ) {
+    return null;
+  }
+  const permissions = {
+    glucose: true,
+    trends: false,
+    reminders: false,
+    hba1c: false,
+    ...sharing.perms,
+  };
+  if (!Array.isArray(sharing.caregivers) || sharing.caregivers.length > 50) {
+    return null;
+  }
+  const caregivers = [];
+  for (const caregiver of sharing.caregivers) {
+    if (
+      !isPlainObject(caregiver) ||
+      !validString(caregiver.email, 254) ||
+      !caregiver.email.includes("@") ||
+      (caregiver.permissions !== undefined &&
+        !isPlainObject(caregiver.permissions))
+    ) {
+      return null;
+    }
+    caregivers.push({
+      id: validString(caregiver.id, 100) ? caregiver.id : "",
+      email: caregiver.email.trim().toLowerCase(),
+      name: validString(caregiver.name, 100) ? caregiver.name : "",
+      status: "connected",
+      addedAt: validString(caregiver.addedAt, 40) ? caregiver.addedAt : "",
+      permissions: Object.fromEntries(
+        permissionKeys.map((key) => [
+          key,
+          (caregiver.permissions || permissions)[key] === true,
+        ]),
+      ),
+    });
+  }
+  if (!Array.isArray(sharing.sharedItems) || sharing.sharedItems.length > 500) {
+    return null;
+  }
+  if (!sharing.sharedItems.every((item) => isPlainObject(item))) return null;
+  return {
+    on: sharing.on,
+    perms: Object.fromEntries(
+      permissionKeys.map((key) => [key, permissions[key]]),
+    ),
+    caregivers,
+    sharedItems: sharing.sharedItems,
+  };
+}
+
+function cleanRecordArray(value, maxLength) {
+  return (
+    Array.isArray(value) &&
+    value.length <= maxLength &&
+    value.every(isPlainObject)
+  );
+}
 
 /** Profile used when a user has not saved one yet. Returns a fresh object each time. */
 function defaultProfile() {
@@ -44,7 +183,31 @@ function defaultSharing() {
 
 /** True for accounts that can receive shared items. */
 function isCaregiverAccount(user) {
-  return user.accountType === "caregiver" || user.ageGroup === "caregiver";
+  return user.accountType === "caregiver";
+}
+
+function connectionPairKey(firstId, secondId) {
+  return [String(firstId), String(secondId)].sort().join(":");
+}
+
+async function findUserById(id) {
+  return databaseConfigured()
+    ? User.findById(id)
+    : memoryUsers.find((entry) => String(entry._id) === String(id));
+}
+
+function connectionSummary(connection, otherUser) {
+  return {
+    id: String(connection._id || connection.id),
+    status: connection.status,
+    requestedAt: connection.createdAt,
+    user: {
+      id: String(otherUser._id),
+      name: otherUser.name,
+      email: otherUser.email,
+      accountType: otherUser.accountType,
+    },
+  };
 }
 
 /** The user fields that are safe to send to the browser (no password hash). */
@@ -107,17 +270,64 @@ router.get("/me", async (req, res) => {
 // PUT /api/user/me - saves readings, reminders, profile and settings.
 router.put("/me", async (req, res) => {
   try {
-    const updates = req.body || {};
-    const profile = updates.profile || {};
+    const updates = req.body;
+    if (!isPlainObject(updates)) {
+      return res.status(400).json({ message: "Invalid profile data." });
+    }
+    const profile = cleanProfile(updates.profile ?? defaultProfile());
+    const sharing = cleanSharing(updates.sharing ?? defaultSharing());
+    const insulinSettings = updates.insulinSettings ?? {};
+    const settingKeys = [
+      "insulinType",
+      "deliveryMethod",
+      "carbRatio",
+      "sensitivity",
+      "targetGlucose",
+      "doseIncrement",
+      "maxBolus",
+      "lowThreshold",
+      "insulinDuration",
+    ];
+    if (
+      !validString(updates.name ?? "", 100) ||
+      !profile ||
+      !sharing ||
+      !isPlainObject(insulinSettings) ||
+      !settingKeys.every(
+        (key) =>
+          insulinSettings[key] === undefined ||
+          validString(String(insulinSettings[key]), 100),
+      ) ||
+      !cleanRecordArray(updates.readings ?? [], 10000) ||
+      !cleanRecordArray(updates.reminders ?? [], 1000)
+    ) {
+      return res.status(400).json({ message: "Invalid profile data." });
+    }
+    let currentUser;
+    if (databaseConfigured()) {
+      currentUser = await User.findById(req.userId);
+    } else {
+      currentUser = memoryUsers.find((entry) => entry._id === req.userId);
+    }
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
     const derivedAgeGroup = ageGroupFromDateOfBirth(profile.dateOfBirth);
     const safeUpdate = {
       name: updates.name || "",
-      ageGroup: derivedAgeGroup || updates.ageGroup || "teen",
-      readings: Array.isArray(updates.readings) ? updates.readings : [],
-      reminders: Array.isArray(updates.reminders) ? updates.reminders : [],
-      insulinSettings: updates.insulinSettings || {},
-      profile: updates.profile || defaultProfile(),
-      sharing: updates.sharing || defaultSharing(),
+      ageGroup:
+        currentUser.accountType === "caregiver"
+          ? "caregiver"
+          : derivedAgeGroup || currentUser.ageGroup || "teen",
+      readings: updates.readings ?? [],
+      reminders: updates.reminders ?? [],
+      insulinSettings: Object.fromEntries(
+        settingKeys
+          .filter((key) => insulinSettings[key] !== undefined)
+          .map((key) => [key, String(insulinSettings[key])]),
+      ),
+      profile,
+      sharing,
     };
 
     let user;
@@ -144,52 +354,256 @@ router.put("/me", async (req, res) => {
   }
 });
 
-// POST /api/user/caregivers - checks that a caregiver account exists for an email.
-router.post("/caregivers", async (req, res) => {
+router.get("/connections", async (req, res) => {
   try {
-    const normalizedEmail = req.body?.caregiverEmail?.trim().toLowerCase();
-    if (!normalizedEmail) {
-      return res.status(400).json({ message: "Caregiver email is required." });
+    const records = databaseConfigured()
+      ? await Connection.find({
+          $or: [{ requesterId: req.userId }, { recipientId: req.userId }],
+          status: { $in: ["pending", "accepted"] },
+        }).lean()
+      : memoryConnections.filter(
+          (entry) =>
+            (entry.requesterId === req.userId ||
+              entry.recipientId === req.userId) &&
+            ["pending", "accepted"].includes(entry.status),
+        );
+    const received = [];
+    const sent = [];
+    const connected = [];
+    for (const connection of records) {
+      const incoming = String(connection.recipientId) === String(req.userId);
+      const otherId = incoming
+        ? connection.requesterId
+        : connection.recipientId;
+      const otherUser = await findUserById(otherId);
+      if (!otherUser) continue;
+      const summary = connectionSummary(connection, otherUser);
+      if (connection.status === "accepted") connected.push(summary);
+      else if (incoming) received.push(summary);
+      else sent.push(summary);
     }
+    res.json({ received, sent, connected });
+  } catch {
+    res.status(500).json({ message: "Could not load pairing requests." });
+  }
+});
 
-    let caregiver;
-    if (databaseConfigured()) {
-      caregiver = await User.findOne({
-        email: normalizedEmail,
-        $or: [{ accountType: "caregiver" }, { ageGroup: "caregiver" }],
-      });
-    } else {
-      caregiver = memoryUsers.find(
-        (entry) =>
-          entry.email?.trim().toLowerCase() === normalizedEmail &&
-          isCaregiverAccount(entry),
-      );
+router.post("/connections", caregiverLookupLimiter, async (req, res) => {
+  try {
+    const email = req.body?.email;
+    if (
+      typeof email !== "string" ||
+      email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ) {
+      return res.status(400).json({ message: "Enter a valid email address." });
     }
-
-    if (!caregiver) {
+    const requester = await findUserById(req.userId);
+    if (!requester) {
       return res
         .status(404)
-        .json({ message: "No caregiver account was found with that email." });
+        .json({ message: "Your account could not be found." });
     }
-
-    res.json({
-      caregiver: {
-        _id: caregiver._id,
-        name: caregiver.name,
-        email: caregiver.email,
-      },
+    const normalizedEmail = email.trim().toLowerCase();
+    const recipient = databaseConfigured()
+      ? await User.findOne({ email: normalizedEmail })
+      : memoryUsers.find(
+          (entry) => entry.email?.trim().toLowerCase() === normalizedEmail,
+        );
+    if (!recipient) {
+      return res
+        .status(404)
+        .json({ message: "No account exists for that email address." });
+    }
+    if (String(recipient._id) === String(requester._id)) {
+      return res
+        .status(400)
+        .json({ message: "You cannot send a request to yourself." });
+    }
+    if (recipient.accountType === requester.accountType) {
+      return res.status(400).json({
+        message: `Pairing requests must be between a patient and a caregiver.`,
+      });
+    }
+    const pairKey = connectionPairKey(requester._id, recipient._id);
+    let connection;
+    if (databaseConfigured()) {
+      const existing = await Connection.findOne({ pairKey });
+      if (existing?.status === "accepted") {
+        return res
+          .status(409)
+          .json({ message: "These accounts are already paired." });
+      }
+      if (existing?.status === "pending") {
+        return res.status(409).json({
+          message:
+            String(existing.recipientId) === String(requester._id)
+              ? "This account has already sent you a request. Review it in your requests."
+              : "A pairing request is already waiting for a response.",
+        });
+      }
+      connection = await Connection.findOneAndUpdate(
+        { pairKey },
+        {
+          $set: {
+            pairKey,
+            requesterId: String(requester._id),
+            recipientId: String(recipient._id),
+            status: "pending",
+          },
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true },
+      );
+    } else {
+      const existing = memoryConnections.find(
+        (entry) => entry.pairKey === pairKey,
+      );
+      if (existing?.status === "accepted") {
+        return res
+          .status(409)
+          .json({ message: "These accounts are already paired." });
+      }
+      if (existing?.status === "pending") {
+        return res.status(409).json({
+          message:
+            existing.recipientId === req.userId
+              ? "This account has already sent you a request. Review it in your requests."
+              : "A pairing request is already waiting for a response.",
+        });
+      }
+      connection = existing || { id: `connection-${Date.now()}`, pairKey };
+      Object.assign(connection, {
+        requesterId: String(requester._id),
+        recipientId: String(recipient._id),
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+      if (!existing) memoryConnections.push(connection);
+    }
+    res.status(201).json({
+      request: connectionSummary(connection, recipient),
+      message: "Pairing request sent.",
     });
   } catch {
-    res.status(500).json({ message: "Could not check caregiver account." });
+    res.status(500).json({ message: "Could not send pairing request." });
+  }
+});
+
+router.patch("/connections/:connectionId", async (req, res) => {
+  try {
+    const accepted = req.body?.decision === "accept";
+    if (!accepted && req.body?.decision !== "decline") {
+      return res.status(400).json({ message: "Choose accept or decline." });
+    }
+    let connection = databaseConfigured()
+      ? await Connection.findById(req.params.connectionId)
+      : memoryConnections.find((entry) => entry.id === req.params.connectionId);
+    if (
+      !connection ||
+      String(connection.recipientId) !== String(req.userId) ||
+      connection.status !== "pending"
+    ) {
+      return res.status(404).json({ message: "Pairing request not found." });
+    }
+    connection.status = accepted ? "accepted" : "declined";
+    if (databaseConfigured()) await connection.save();
+    const requester = await findUserById(connection.requesterId);
+    const recipient = await findUserById(connection.recipientId);
+    if (accepted && requester && recipient) {
+      const patient =
+        requester.accountType === "patient" ? requester : recipient;
+      const caregiver =
+        requester.accountType === "caregiver" ? requester : recipient;
+      const sharing = patient.sharing || defaultSharing();
+      const caregivers = Array.isArray(sharing.caregivers)
+        ? sharing.caregivers
+        : [];
+      if (!caregivers.some((entry) => entry.email === caregiver.email)) {
+        caregivers.push({
+          id: String(caregiver._id),
+          email: caregiver.email,
+          name: caregiver.name,
+          status: "connected",
+          addedAt: new Date().toISOString(),
+          permissions: { ...sharing.perms },
+        });
+      }
+      const updatedSharing = { ...sharing, caregivers };
+      if (databaseConfigured()) {
+        await User.findByIdAndUpdate(patient._id, { sharing: updatedSharing });
+      } else {
+        patient.sharing = updatedSharing;
+      }
+    }
+    res.json({ status: connection.status });
+  } catch {
+    res.status(500).json({ message: "Could not update pairing request." });
+  }
+});
+
+router.delete("/connections/:connectionId", async (req, res) => {
+  try {
+    const connection = databaseConfigured()
+      ? await Connection.findById(req.params.connectionId)
+      : memoryConnections.find((entry) => entry.id === req.params.connectionId);
+    if (
+      !connection ||
+      ![connection.requesterId, connection.recipientId].some(
+        (id) => String(id) === String(req.userId),
+      ) ||
+      connection.status !== "accepted"
+    ) {
+      return res.status(404).json({ message: "Active pairing not found." });
+    }
+    const first = await findUserById(connection.requesterId);
+    const second = await findUserById(connection.recipientId);
+    const patient = first?.accountType === "patient" ? first : second;
+    const caregiver = first?.accountType === "caregiver" ? first : second;
+    if (patient && caregiver) {
+      const sharing = patient.sharing || defaultSharing();
+      const updatedSharing = {
+        ...sharing,
+        caregivers: (sharing.caregivers || []).filter(
+          (entry) => entry.email !== caregiver.email,
+        ),
+      };
+      if (databaseConfigured()) {
+        await User.findByIdAndUpdate(patient._id, { sharing: updatedSharing });
+        await User.findByIdAndUpdate(caregiver._id, {
+          $pull: { sharedItems: { senderId: String(patient._id) } },
+        });
+      } else {
+        patient.sharing = updatedSharing;
+        caregiver.sharedItems = (caregiver.sharedItems || []).filter(
+          (item) => item.senderId !== String(patient._id),
+        );
+      }
+    }
+    connection.status = "revoked";
+    if (databaseConfigured()) await connection.save();
+    res.json({ status: "revoked" });
+  } catch {
+    res.status(500).json({ message: "Could not remove pairing." });
   }
 });
 
 // POST /api/user/share - places an item in a caregiver's inbox.
-router.post("/share", async (req, res) => {
+router.post("/share", shareLimiter, async (req, res) => {
   try {
     const { caregiverEmail, item } = req.body || {};
-    const normalizedEmail = caregiverEmail?.trim().toLowerCase();
-    if (!normalizedEmail || !item?.title || !item?.detail) {
+    const normalizedEmail =
+      typeof caregiverEmail === "string"
+        ? caregiverEmail.trim().toLowerCase()
+        : "";
+    if (
+      !normalizedEmail ||
+      !isPlainObject(item) ||
+      !SHARE_TYPES.has(item.type) ||
+      !validString(item.title, 100) ||
+      !validString(item.detail, 2000) ||
+      (item.data !== undefined &&
+        (!isPlainObject(item.data) || JSON.stringify(item.data).length > 8192))
+    ) {
       return res
         .status(400)
         .json({ message: "Caregiver and shared item are required." });
@@ -201,23 +615,85 @@ router.post("/share", async (req, res) => {
       patient = await User.findById(req.userId);
       caregiver = await User.findOne({
         email: normalizedEmail,
-        $or: [{ accountType: "caregiver" }, { ageGroup: "caregiver" }],
+        accountType: "caregiver",
       });
+      const paired =
+        patient && caregiver
+          ? await Connection.exists({
+              pairKey: connectionPairKey(patient._id, caregiver._id),
+              status: "accepted",
+            })
+          : false;
+      const connection = patient?.sharing?.caregivers?.find(
+        (entry) => entry.email?.trim().toLowerCase() === normalizedEmail,
+      );
+      if (
+        !patient ||
+        !paired ||
+        patient.accountType === "caregiver" ||
+        !patient.sharing?.on ||
+        patient.sharing?.perms?.[item.type] !== true ||
+        !connection ||
+        connection.permissions?.[item.type] === false
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Sharing is not enabled for this caregiver." });
+      }
       if (!caregiver)
         return res
           .status(404)
           .json({ message: "Caregiver account not found." });
+      const sharedItem = {
+        id: validString(item.id, 100) ? item.id : `share-${Date.now()}`,
+        type: item.type,
+        title: item.title,
+        detail: item.detail,
+        sharedAt: new Date().toISOString(),
+        viewedAt: null,
+        senderId: String(patient._id),
+        senderName: patient.name || "A patient",
+        recipientEmail: normalizedEmail,
+        data: item.data,
+      };
       await User.findByIdAndUpdate(caregiver._id, {
         $push: {
           sharedItems: {
-            ...item,
-            senderName: patient?.name || "A patient",
-            recipientEmail: normalizedEmail,
+            $each: [sharedItem],
+            $position: 0,
+            $slice: CAREGIVER_INBOX_LIMIT,
           },
         },
       });
     } else {
       patient = memoryUsers.find((entry) => entry._id === req.userId);
+      const caregiverAccount = memoryUsers.find(
+        (entry) => entry.email?.trim().toLowerCase() === normalizedEmail,
+      );
+      const paired = caregiverAccount
+        ? memoryConnections.some(
+            (entry) =>
+              entry.pairKey ===
+                connectionPairKey(patient?._id, caregiverAccount._id) &&
+              entry.status === "accepted",
+          )
+        : false;
+      const connection = patient?.sharing?.caregivers?.find(
+        (entry) => entry.email?.trim().toLowerCase() === normalizedEmail,
+      );
+      if (
+        !patient ||
+        !paired ||
+        patient.accountType === "caregiver" ||
+        !patient.sharing?.on ||
+        patient.sharing?.perms?.[item.type] !== true ||
+        !connection ||
+        connection.permissions?.[item.type] === false
+      ) {
+        return res
+          .status(403)
+          .json({ message: "Sharing is not enabled for this caregiver." });
+      }
       caregiver = memoryUsers.find(
         (entry) =>
           entry.email?.trim().toLowerCase() === normalizedEmail &&
@@ -229,12 +705,19 @@ router.post("/share", async (req, res) => {
           .json({ message: "Caregiver account not found." });
       caregiver.sharedItems = [
         {
-          ...item,
-          senderName: patient?.name || "A patient",
+          id: validString(item.id, 100) ? item.id : `share-${Date.now()}`,
+          type: item.type,
+          title: item.title,
+          detail: item.detail,
+          sharedAt: new Date().toISOString(),
+          viewedAt: null,
+          senderId: String(patient._id),
+          senderName: patient.name || "A patient",
           recipientEmail: normalizedEmail,
+          data: item.data,
         },
         ...(caregiver.sharedItems || []),
-      ];
+      ].slice(0, CAREGIVER_INBOX_LIMIT);
     }
     res.status(201).json({ item });
   } catch {
