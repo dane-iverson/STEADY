@@ -169,7 +169,7 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
       }
 
       sessionStorage.setItem("steady-token", data.token);
-      onAuthSuccess(data.user, data.token);
+      onAuthSuccess(data.user, data.token, data.isNewAccount === true);
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {

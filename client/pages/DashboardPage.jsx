@@ -16,6 +16,7 @@ import {
   statusOf,
 } from "../utils/diabetes";
 import { Card } from "../components/Card";
+import { GettingStarted } from "../components/GettingStarted";
 import { getNextOccurrence, formatNextOccurrence } from "../utils/reminders";
 
 export function DashboardPage({
@@ -25,6 +26,9 @@ export function DashboardPage({
   reminders,
   profile,
   setScreen,
+  onboardingComplete,
+  onStartTour,
+  prototype = false,
 }) {
   const selectedAgeGroup = AGE_GROUPS[ageGroup] ? ageGroup : "teen";
   const c = COPY[AGE_GROUPS[selectedAgeGroup].tone];
@@ -121,6 +125,13 @@ export function DashboardPage({
           <span>Care plan</span>
         </div>
       </div>
+
+      <GettingStarted
+        mode={prototype ? "prototype" : "patient"}
+        complete={onboardingComplete}
+        onStartTour={onStartTour}
+        setScreen={setScreen}
+      />
 
       {last && (
         <Card

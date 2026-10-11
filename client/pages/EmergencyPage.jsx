@@ -22,7 +22,7 @@ export function EmergencyPage({ profile, onBack }) {
         <WifiOff size={12} /> Always available, even offline
       </div>
 
-      <Card>
+      <Card className="emergencyLowGuidance">
         <div className="cardEyebrow" style={{ color: "#3E7CB8" }}>
           Low blood glucose (hypo)
         </div>

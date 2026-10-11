@@ -35,6 +35,7 @@ function sanitizeUser(user) {
     name: user.name,
     email: user.email,
     accountType: user.accountType || "patient",
+    onboardingComplete: user.onboardingComplete ?? true,
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
@@ -113,6 +114,7 @@ router.post("/signup", async (req, res) => {
       passwordHash,
       ageGroup: ageGroup || "teen",
       accountType: isCaregiver ? "caregiver" : "patient",
+      onboardingComplete: false,
       readings: [],
       reminders: [],
       profile: {
@@ -138,6 +140,7 @@ router.post("/signup", async (req, res) => {
           email: newUser.email,
           passwordHash: newUser.passwordHash,
           accountType: newUser.accountType,
+          onboardingComplete: false,
           ageGroup: newUser.ageGroup,
           readings: newUser.readings,
           reminders: newUser.reminders,
@@ -160,7 +163,11 @@ router.post("/signup", async (req, res) => {
     }
 
     const token = createToken(savedUser._id);
-    res.status(201).json({ token, user: sanitizeUser(savedUser) });
+    res.status(201).json({
+      token,
+      user: sanitizeUser(savedUser),
+      isNewAccount: true,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Signup failed." });

@@ -763,6 +763,315 @@
   margin-bottom: 4px;
 }
 
+.guidedTourBackdrop {
+  z-index: 30;
+}
+
+.guidedTourPanel {
+  width: min(100%, 430px);
+  padding: 22px;
+}
+
+.guidedTourHeader,
+.guidedTourActions,
+.gettingStartedHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.guidedTourHeader {
+  margin-bottom: 16px;
+}
+
+.guidedTourIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.guidedTourTitle {
+  margin: 7px 0 8px;
+  color: var(--brand-dark);
+  font:
+    700 21px/1.2 "Manrope",
+    sans-serif;
+}
+
+.guidedTourPanel .screenSub {
+  margin-bottom: 0;
+}
+
+.guidedTourCoach {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  width: min(430px, calc(100vw - 24px));
+  max-height: min(42svh, 300px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.guidedTourCoachCollapsed {
+  right: 10px;
+  left: auto;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  transform: none;
+}
+
+.guidedTourCoach-top {
+  top: max(12px, env(safe-area-inset-top, 0px));
+  bottom: auto;
+}
+
+.guidedTourMinimized {
+  min-height: 38px;
+  padding: 8px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--brand-dark);
+  box-shadow: 0 8px 24px rgba(20, 45, 40, 0.2);
+  font:
+    700 11px/1.2 "DM Sans",
+    sans-serif;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.guidedTourCard {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 34px rgba(20, 45, 40, 0.22);
+  pointer-events: auto;
+}
+
+.guidedTourCard .guidedTourHeader {
+  margin-bottom: 7px;
+}
+
+.guidedTourMeta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.guidedTourCard .guidedTourIcon {
+  width: 30px;
+  height: 30px;
+}
+
+.guidedTourCard .guidedTourCount {
+  float: none;
+  color: var(--ink-soft);
+}
+
+.guidedTourCard .guidedTourProgress {
+  margin: 7px 0 10px;
+}
+
+.guidedTourCard .guidedTourTitle {
+  margin: 0 0 5px;
+  font-size: 16px;
+}
+
+.guidedTourBody {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.guidedTourCard .guidedTourNote {
+  margin-top: 8px;
+  padding: 7px 9px;
+  font-size: 10.5px;
+}
+
+.guidedTourCard .guidedTourActions {
+  margin-top: 10px;
+}
+
+.guidedTourCard .guidedTourActions .btnPrimary,
+.guidedTourCard .guidedTourActions .btnGhost {
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 11.5px;
+}
+
+.guidedTourTarget {
+  position: relative !important;
+  z-index: 29 !important;
+  outline: 3px solid var(--brand) !important;
+  outline-offset: 4px;
+  scroll-margin-block: 35vh;
+}
+
+.guidedTourCount {
+  float: right;
+  color: var(--brand-dark);
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.guidedTourProgress {
+  height: 4px;
+  overflow: hidden;
+  margin: 10px 0 16px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.guidedTourProgress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width 0.2s ease;
+}
+
+.guidedTourNote {
+  margin: 12px 0 0;
+  padding: 9px 11px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.guidedTourActions {
+  margin-top: 20px;
+}
+
+.guidedTourActions .btnPrimary,
+.guidedTourActions .btnGhost {
+  width: auto;
+  min-height: 42px;
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.gettingStartedCard {
+  margin-bottom: 14px;
+  padding: 15px;
+}
+
+.gettingStartedHeading h3 {
+  margin: 4px 0 0;
+  color: var(--brand-dark);
+  font:
+    700 15px/1.2 "Manrope",
+    sans-serif;
+}
+
+.gettingStartedHeading > svg {
+  flex: 0 0 auto;
+  color: var(--brand);
+}
+
+.gettingStartedCard > .mutedSmall {
+  margin: 8px 0 10px;
+  line-height: 1.45;
+}
+
+.gettingStartedActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.gettingStartedAction {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  margin: 0;
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  text-align: left;
+  font-size: 11px;
+}
+
+.gettingStartedAction svg,
+.gettingStartedTour svg,
+.gettingStartedReplay svg {
+  flex: 0 0 auto;
+}
+
+.gettingStartedTour,
+.gettingStartedReplay {
+  min-height: 38px;
+  margin-top: 9px;
+  padding: 7px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--brand-dark);
+  font:
+    700 11.5px/1.2 "DM Sans",
+    sans-serif;
+  cursor: pointer;
+}
+
+.gettingStartedReplay {
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.gettingStartedTour:hover,
+.gettingStartedReplay:hover {
+  color: var(--brand);
+}
+
+@media (max-width: 520px) {
+  .guidedTourBackdrop {
+    align-items: flex-end;
+    padding: 12px 10px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .guidedTourPanel {
+    width: 100%;
+    max-height: min(76dvh, 560px);
+    padding: 19px;
+    border-radius: 14px;
+  }
+
+  .guidedTourCoach {
+    width: calc(100vw - 20px);
+    max-height: min(42svh, 330px);
+  }
+
+  .guidedTourCoach-top {
+    top: max(10px, env(safe-area-inset-top, 0px));
+  }
+
+  .gettingStartedActions {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ==========================================================================
    Analytics consent banner
    ========================================================================== */

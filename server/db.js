@@ -57,6 +57,7 @@ export function createUserDocument(data) {
     email: data.email || "",
     passwordHash: data.passwordHash || "",
     accountType: data.accountType || "patient",
+    onboardingComplete: data.onboardingComplete ?? true,
     ageGroup: data.ageGroup || "teen",
     readings: Array.isArray(data.readings) ? data.readings : [],
     reminders: Array.isArray(data.reminders) ? data.reminders : [],

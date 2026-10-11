@@ -217,6 +217,7 @@ function sanitizeUser(user) {
     name: user.name,
     email: user.email,
     accountType: user.accountType || "patient",
+    onboardingComplete: user.onboardingComplete ?? true,
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
@@ -290,6 +291,8 @@ router.put("/me", async (req, res) => {
     ];
     if (
       !validString(updates.name ?? "", 100) ||
+      (updates.onboardingComplete !== undefined &&
+        typeof updates.onboardingComplete !== "boolean") ||
       !profile ||
       !sharing ||
       !isPlainObject(insulinSettings) ||
@@ -315,6 +318,9 @@ router.put("/me", async (req, res) => {
     const derivedAgeGroup = ageGroupFromDateOfBirth(profile.dateOfBirth);
     const safeUpdate = {
       name: updates.name || "",
+      ...(typeof updates.onboardingComplete === "boolean"
+        ? { onboardingComplete: updates.onboardingComplete }
+        : {}),
       ageGroup:
         currentUser.accountType === "caregiver"
           ? "caregiver"

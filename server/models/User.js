@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
       enum: ["patient", "caregiver"],
       default: "patient",
     },
+    onboardingComplete: { type: Boolean, default: true },
     ageGroup: { type: String, default: "teen" },
     readings: { type: Array, default: [] },
     reminders: { type: Array, default: [] },

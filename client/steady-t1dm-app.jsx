@@ -15,6 +15,7 @@ import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { InsulinCalculatorPage } from "./pages/InsulinCalculatorPage";
 import { CaregiverInboxPage } from "./pages/CaregiverInboxPage";
+import { GuidedTour } from "./components/GuidedTour";
 import {
   ageGroupFromDateOfBirth,
   buildReadingEntry,
@@ -150,6 +151,12 @@ export default function App() {
     sent: [],
     connected: [],
   });
+  const [onboardingComplete, setOnboardingComplete] = useState(
+    () =>
+      sessionStorage.getItem("steady-prototype") === "true" &&
+      sessionStorage.getItem("steady-prototype-tour-complete") === "true",
+  );
+  const [tourStage, setTourStage] = useState(null);
   const [analyticsConsent, setAnalyticsConsentState] =
     useState(getAnalyticsConsent);
 
@@ -204,6 +211,9 @@ export default function App() {
 
   useEffect(() => {
     if (!isPrototype) return;
+    setOnboardingComplete(
+      sessionStorage.getItem("steady-prototype-tour-complete") === "true",
+    );
     const data = buildPrototypeData(
       sessionStorage.getItem("steady-prototype-group") || "teen",
     );
@@ -238,6 +248,7 @@ export default function App() {
 
         const payload = await response.json();
         hydrateFromUser(payload.user);
+        setOnboardingComplete(payload.user?.onboardingComplete ?? true);
         const connectionResponse = await fetch(`${API_BASE}/user/connections`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -296,6 +307,7 @@ export default function App() {
     });
     setAccountType(user.accountType || "patient");
     setSharedItems(user.sharedItems || []);
+    setOnboardingComplete(user.onboardingComplete ?? true);
   }
 
   // Persist a complete snapshot so each update uses the same API payload shape.
@@ -309,6 +321,7 @@ export default function App() {
       profile,
       sharing,
       insulinSettings,
+      onboardingComplete,
       sharedItems,
       ...nextOverrides,
       name: nextOverrides.name ?? nextOverrides.profile?.name ?? name,
@@ -413,10 +426,11 @@ export default function App() {
   }
 
   // Session and prototype transitions reset or hydrate all account-scoped state.
-  function handleAuthSuccess(user, authToken) {
+  function handleAuthSuccess(user, authToken, isNewAccount = false) {
     sessionStorage.setItem("steady-token", authToken);
     setToken(authToken);
     hydrateFromUser(user);
+    setTourStage(isNewAccount ? "prompt" : null);
     setScreen(
       user?.accountType === "caregiver" ? "caregiverInbox" : "dashboard",
       { replace: true },
@@ -426,6 +440,7 @@ export default function App() {
   function resetUserState() {
     sessionStorage.removeItem("steady-prototype");
     sessionStorage.removeItem("steady-prototype-group");
+    sessionStorage.removeItem("steady-prototype-tour-complete");
     setName("");
     setAgeGroup("teen");
     setReadings(defaultReadings);
@@ -439,6 +454,8 @@ export default function App() {
     setOnline(true);
     setIsPrototype(false);
     setEditingReading(null);
+    setOnboardingComplete(false);
+    setTourStage(null);
   }
 
   function startPrototype(group) {
@@ -446,7 +463,10 @@ export default function App() {
     resetUserState();
     sessionStorage.setItem("steady-prototype", "true");
     sessionStorage.setItem("steady-prototype-group", group);
+    sessionStorage.removeItem("steady-prototype-tour-complete");
     setIsPrototype(true);
+    setOnboardingComplete(false);
+    setTourStage("prompt");
     setName(data.name);
     setAgeGroup(data.ageGroup);
     setReadings(data.readings);
@@ -455,6 +475,26 @@ export default function App() {
     setInsulinSettings(data.insulinSettings);
     setIsPrototype(true);
     setScreen("dashboard");
+  }
+
+  function closeTour() {
+    setTourStage(null);
+    setScreen(accountType === "caregiver" ? "caregiverInbox" : "dashboard", {
+      replace: true,
+    });
+  }
+
+  async function completeTour() {
+    setOnboardingComplete(true);
+    setTourStage(null);
+    const homeScreen =
+      accountType === "caregiver" ? "caregiverInbox" : "dashboard";
+    setScreen(homeScreen, { replace: true });
+    if (isPrototype) {
+      sessionStorage.setItem("steady-prototype-tour-complete", "true");
+      return;
+    }
+    await persistUserState({ onboardingComplete: true });
   }
 
   function handleLogout() {
@@ -604,8 +644,8 @@ export default function App() {
           {routedScreen === "auth" && (
             <AuthPage
               onPrototype={startPrototype}
-              onAuthSuccess={(user, authToken) => {
-                handleAuthSuccess(user, authToken);
+              onAuthSuccess={(user, authToken, isNewAccount) => {
+                handleAuthSuccess(user, authToken, isNewAccount);
               }}
             />
           )}
@@ -617,6 +657,8 @@ export default function App() {
               sharedItems={sharedItems}
               onRefresh={refreshUserState}
               connectionRequests={connectionRequests}
+              onboardingComplete={onboardingComplete}
+              onStartTour={() => setTourStage("tour")}
               onRequestConnection={requestConnection}
               onRespondToConnection={respondToConnection}
               onRevokeConnection={revokeConnection}
@@ -632,6 +674,9 @@ export default function App() {
               readings={readings}
               reminders={reminders}
               setScreen={setScreen}
+              onboardingComplete={onboardingComplete}
+              onStartTour={() => setTourStage("tour")}
+              prototype={isPrototype}
             />
           )}
 
@@ -756,6 +801,18 @@ export default function App() {
         </div>
 
         {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
+
+        <GuidedTour
+          stage={tourStage}
+          screen={routedScreen}
+          mode={
+            isPrototype ? "prototype" : isCaregiver ? "caregiver" : "patient"
+          }
+          setScreen={setScreen}
+          onStart={() => setTourStage("tour")}
+          onClose={closeTour}
+          onComplete={completeTour}
+        />
 
         {analyticsConfigured && analyticsConsent === null && (
           <div className="consentBanner" role="dialog" aria-label="Analytics">

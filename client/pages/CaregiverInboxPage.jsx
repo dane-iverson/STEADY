@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Card } from "../components/Card";
+import { GettingStarted } from "../components/GettingStarted";
 
 const PREVIEW_COUNT = 5;
 const PAGE_SIZE = 10;
@@ -128,6 +129,8 @@ export function CaregiverInboxPage({
   email,
   sharedItems = [],
   connectionRequests = { received: [], sent: [], connected: [] },
+  onboardingComplete = true,
+  onStartTour,
   onRefresh,
   onRequestConnection,
   onRespondToConnection,
@@ -267,6 +270,12 @@ export function CaregiverInboxPage({
         </div>
       </div>
 
+      <GettingStarted
+        mode="caregiver"
+        complete={onboardingComplete}
+        onStartTour={onStartTour}
+      />
+
       <Card className="caregiverConnectionPanel">
         <div className="sectionKicker">PATIENT PAIRING</div>
         <h3>Connect with a patient</h3>
@@ -276,6 +285,7 @@ export function CaregiverInboxPage({
         </p>
         <div className="caregiverInviteRow">
           <input
+            id="caregiver-connection-email"
             className="textInput"
             type="email"
             value={connectionEmail}

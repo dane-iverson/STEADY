@@ -506,7 +506,10 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
       })}
 
       {!adding ? (
-        <button className="btnGhost" onClick={() => setAdding(true)}>
+        <button
+          className="btnGhost reminderAddButton"
+          onClick={() => setAdding(true)}
+        >
           <Plus size={16} /> Add reminder
         </button>
       ) : editingId ? null : (
