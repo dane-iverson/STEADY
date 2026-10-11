@@ -741,6 +741,11 @@
   .appOuter.theme-young_adult {
     background-attachment: scroll;
   }
+  .appOuter.theme-child .phone,
+  .appOuter.theme-teen .phone,
+  .appOuter.theme-young_adult .phone {
+    border-radius: 0;
+  }
 }
 
 /* ==========================================================================
