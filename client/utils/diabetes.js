@@ -390,7 +390,6 @@ function trendChartSvg(points, title, customLimits = null) {
   const chartHeight = height - top - bottom;
   const glucoseRanges = glucoseRangesFromLimits(customLimits || undefined);
   const chartMax = Math.max(18, glucoseRanges[3].max + 4);
-  // Weekly charts carry `x` timestamps, daily-average points (`d`) and weekly points (`v`).
   const timed = points.some((point) => point.x !== undefined);
   const xValues = points.map((point) => point.x);
   const minX = Math.min(...xValues);
@@ -444,22 +443,15 @@ function trendChartSvg(points, title, customLimits = null) {
       .join("");
   const mainSeries = toSeries("v");
   const dailySeries = timed ? toSeries("d") : [];
-  const labelSeries = timed ? dailySeries : mainSeries;
-  const labelStep =
-    labelSeries.length > 8 ? Math.ceil((labelSeries.length - 1) / 7) : 1;
-  const labels = labelSeries
-    .filter(
-      (_, index) =>
-        index === 0 ||
-        index === labelSeries.length - 1 ||
-        index % labelStep === 0,
-    )
+  const labels = points
+    .map((point, index) => ({ point, x: xOf(point, index) }))
+    .filter(({ point }) => point.axisLabel)
     .map(
       ({ point, x }) =>
-        `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.short || point.t)}</text>`,
+        `<text x="${x.toFixed(1)}" y="${height - 14}" text-anchor="middle">${escapeHtml(point.axisLabel)}</text>`,
     )
     .join("");
-  const dailyLayer = timed
+  const dailyLayer = points.some((point) => point.d !== undefined)
     ? `<path d="${toPath(dailySeries)}" fill="none" stroke="#8fb8ac" stroke-opacity=".7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${toDots(dailySeries, 2.5, "#8fb8ac", " (daily average)")}`
     : "";
   const path = toPath(mainSeries);

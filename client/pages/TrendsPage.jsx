@@ -18,6 +18,12 @@ import {
   readingsForDateRange,
   statusOf,
 } from "../utils/diabetes";
+import {
+  DAY_MS,
+  dateSpanDays,
+  formatAxisDate,
+  selectAxisTicks,
+} from "../utils/trendAxis";
 
 function formatReadingDate(dateValue, fallbackLabel = "Reading") {
   const stamp = dateValue ? new Date(dateValue) : null;
@@ -79,7 +85,7 @@ function formatGlucoseRangeDescriptions(ranges) {
   ];
 }
 
-function buildTrendPoints(filteredReadings, mode) {
+function buildTrendPoints(filteredReadings, mode, dateRange = null) {
   const sorted = filteredReadings
     .map((reading) => ({
       ...reading,
@@ -94,11 +100,13 @@ function buildTrendPoints(filteredReadings, mode) {
     .sort((a, b) => a.timestamp - b.timestamp);
 
   if (mode === "daily") {
-    return sorted.map((reading) => ({
+    const points = sorted.map((reading) => ({
       t: formatReadingDate(reading.date, reading.time || "Reading"),
       short: formatShortDate(reading.date),
+      x: reading.timestamp.getTime(),
       v: reading.value,
     }));
+    return addAxisLabels(points, dateRange);
   }
 
   const grouped = new Map();
@@ -112,7 +120,7 @@ function buildTrendPoints(filteredReadings, mode) {
     grouped.get(key).values.push(reading.value);
   });
 
-  return [...grouped.values()].map(({ date, values }) => {
+  const points = [...grouped.values()].map(({ date, values }) => {
     const label = date.toLocaleDateString([], {
       day: "numeric",
       month: "short",
@@ -120,15 +128,24 @@ function buildTrendPoints(filteredReadings, mode) {
     return {
       t: `Week of ${label}`,
       short: label,
+      x: date.getTime(),
       v: values.reduce((sum, value) => sum + value, 0) / values.length,
     };
   });
+  return addAxisLabels(points, dateRange);
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+function addAxisLabels(points, dateRange) {
+  const spanDays = dateSpanDays(points, dateRange);
+  const tickDates = new Set(selectAxisTicks(points, spanDays));
+  return points.map((point) => ({
+    ...point,
+    axisLabel: tickDates.has(point.x) ? formatAxisDate(point.x, spanDays) : "",
+  }));
+}
 
 // Weekly chart data: one faint point per day (`d`) plus one weekly average (`v`) at mid-week.
-function buildWeeklyChartPoints(filteredReadings) {
+function buildWeeklyChartPoints(filteredReadings, dateRange = null) {
   const days = new Map();
   filteredReadings.forEach((reading) => {
     const value = Number(reading.v);
@@ -151,9 +168,11 @@ function buildWeeklyChartPoints(filteredReadings) {
     short: formatShortDate(date),
     d: average(values),
   }));
-  const weeklyPoints = buildTrendPoints(filteredReadings, "weekly").map(
-    (point, index) => ({ point, index }),
-  );
+  const weeklyPoints = buildTrendPoints(
+    filteredReadings,
+    "weekly",
+    dateRange,
+  ).map((point, index) => ({ point, index }));
 
   // Re-derive each week's start so the weekly point sits in the middle of its week.
   const weekStarts = [];
@@ -172,7 +191,10 @@ function buildWeeklyChartPoints(filteredReadings) {
     v: point.v,
   }));
 
-  return [...dailyPoints, ...weekPoints].sort((a, b) => a.x - b.x);
+  return addAxisLabels(
+    [...dailyPoints, ...weekPoints].sort((a, b) => a.x - b.x),
+    dateRange,
+  );
 }
 
 export function TrendsPage({
@@ -206,12 +228,12 @@ export function TrendsPage({
     [exportDateRange, readings],
   );
   const exportDailyPoints = useMemo(
-    () => buildTrendPoints(exportReadings, "daily"),
-    [exportReadings],
+    () => buildTrendPoints(exportReadings, "daily", exportDateRange),
+    [exportDateRange, exportReadings],
   );
   const exportWeeklyPoints = useMemo(
-    () => buildWeeklyChartPoints(exportReadings),
-    [exportReadings],
+    () => buildWeeklyChartPoints(exportReadings, exportDateRange),
+    [exportDateRange, exportReadings],
   );
   const exportRangeInvalid = exportRange === "Custom" && !exportDateRange;
   const dateRange = useMemo(() => {
@@ -226,15 +248,20 @@ export function TrendsPage({
     [dateRange, readings],
   );
   const dailyPoints = useMemo(
-    () => buildTrendPoints(filteredReadings, "daily"),
-    [filteredReadings],
+    () => buildTrendPoints(filteredReadings, "daily", dateRange),
+    [dateRange, filteredReadings],
   );
   const weeklyChartPoints = useMemo(
-    () => buildWeeklyChartPoints(filteredReadings),
-    [filteredReadings],
+    () => buildWeeklyChartPoints(filteredReadings, dateRange),
+    [dateRange, filteredReadings],
   );
   const chartData = view === "daily" ? dailyPoints : weeklyChartPoints;
   const weeklyView = view === "weekly";
+  const chartSpanDays = dateSpanDays(chartData, dateRange);
+  const chartAxisTicks = selectAxisTicks(
+    weeklyView ? chartData.filter((point) => point.d !== undefined) : chartData,
+    chartSpanDays,
+  );
   const glucoseRanges = glucoseRangesFromLimits(profile?.glucoseRanges);
   const glucoseRangeDescriptions =
     formatGlucoseRangeDescriptions(glucoseRanges);
@@ -416,14 +443,12 @@ export function TrendsPage({
               />
             ))}
             <XAxis
-              dataKey={weeklyView ? "x" : "short"}
-              {...(weeklyView && {
-                type: "number",
-                scale: "time",
-                domain: ["dataMin", "dataMax"],
-                tickFormatter: formatShortDate,
-              })}
-              interval="preserveStartEnd"
+              dataKey="x"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              ticks={chartAxisTicks}
+              tickFormatter={(value) => formatAxisDate(value, chartSpanDays)}
               tick={{ fontSize: 11, fill: "#5B675E" }}
               axisLine={false}
               tickLine={false}
