@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Check,
   CheckCircle2,
@@ -32,6 +32,15 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
   const [completionNotes, setCompletionNotes] = useState("");
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [toastMessage, setToastMessage] = useState("Reminder saved");
+  const editingCardRef = useRef(null);
+
+  useEffect(() => {
+    if (!editingId) return;
+    editingCardRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }, [editingId]);
 
   const activeCount = reminders.filter((reminder) => reminder.on).length;
   const completedCount = reminders.filter(
@@ -101,6 +110,7 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
   }
 
   function startEdit(r) {
+    setCompletionId(null);
     setEditingId(r.id);
     setAdding(true);
     setTitle(r.title || "");
@@ -160,6 +170,115 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
     setTimeout(() => setJustSet(false), 2200);
   }
 
+  function renderReminderForm() {
+    return (
+      <>
+        <div className="reminderFormTitle">
+          <FileText size={15} />
+          {editingId ? "Edit reminder" : "New reminder"}
+        </div>
+        <label className="fieldLabel">What's it for?</label>
+        <div className="chipRow">
+          {["Glucose check", "Insulin", "Appointment", "Other"].map((k) => (
+            <button
+              key={k}
+              className={"chip" + (kind === k ? " chipActive" : "")}
+              onClick={() => setKind(k)}
+              type="button"
+            >
+              {k}
+            </button>
+          ))}
+        </div>
+
+        {kind === "Other" && (
+          <>
+            <label className="fieldLabel" style={{ marginTop: 8 }}>
+              Describe Other
+            </label>
+            <input
+              className="textInput"
+              value={otherKind}
+              onChange={(event) => setOtherKind(event.target.value)}
+              placeholder="e.g. Take medication"
+              maxLength={100}
+            />
+          </>
+        )}
+
+        <label className="fieldLabel" style={{ marginTop: 12 }}>
+          Title
+        </label>
+        <input
+          className="textInput"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="e.g. Lunchtime check"
+          maxLength={100}
+        />
+
+        <label className="fieldLabel" style={{ marginTop: 12 }}>
+          When
+        </label>
+        <input
+          className="textInput"
+          type="datetime-local"
+          value={when}
+          onChange={(event) => setWhen(event.target.value)}
+        />
+
+        <label className="fieldLabel" style={{ marginTop: 12 }}>
+          Repeat
+        </label>
+        <select
+          className="textInput"
+          value={repeat}
+          onChange={(event) => setRepeat(event.target.value)}
+        >
+          {[
+            "Never",
+            "Hourly",
+            "Daily",
+            "Weekly",
+            "Every 2 Weeks",
+            "Monthly",
+            "Every 3 Months",
+            "Every 6 Months",
+            "Yearly",
+            "Custom",
+          ].map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+
+        <div className="rowGap" style={{ marginTop: 14 }}>
+          <button
+            className="btnPrimary"
+            style={{ flex: 1 }}
+            onClick={add}
+            disabled={!title.trim() || !when}
+            type="button"
+          >
+            {editingId ? "Save changes" : "Set reminder"}
+          </button>
+          <button
+            className="btnGhost"
+            style={{ flex: 1 }}
+            onClick={() => {
+              setAdding(false);
+              resetForm();
+            }}
+            type="button"
+          >
+            Cancel
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="screen">
       <button className="linkBack" onClick={onBack}>
@@ -214,7 +333,11 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
         const isHistoryOpen = expandedHistoryId === r.id;
 
         return (
-          <Card key={r.id} style={{ marginBottom: 10 }}>
+          <Card
+            key={r.id}
+            style={{ marginBottom: 10 }}
+            ref={editingId === r.id ? editingCardRef : null}
+          >
             <div className="reminderCardTop">
               <div className="reminderCardTitleRow">
                 <div className="cardMainLine">{r.title}</div>
@@ -375,6 +498,9 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
                 ))}
               </div>
             )}
+            {editingId === r.id && (
+              <div className="reminderEditForm">{renderReminderForm()}</div>
+            )}
           </Card>
         );
       })}
@@ -383,97 +509,8 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
         <button className="btnGhost" onClick={() => setAdding(true)}>
           <Plus size={16} /> Add reminder
         </button>
-      ) : (
-        <Card>
-          <label className="fieldLabel">What's it for?</label>
-          <div className="chipRow">
-            {["Glucose check", "Insulin", "Appointment", "Other"].map((k) => (
-              <button
-                key={k}
-                className={"chip" + (kind === k ? " chipActive" : "")}
-                onClick={() => setKind(k)}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-
-          {kind === "Other" && (
-            <>
-              <label className="fieldLabel" style={{ marginTop: 8 }}>
-                Describe Other
-              </label>
-              <input
-                className="textInput"
-                value={otherKind}
-                onChange={(e) => setOtherKind(e.target.value)}
-                placeholder="e.g. Take medication"
-              />
-            </>
-          )}
-
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            Title
-          </label>
-          <input
-            className="textInput"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Lunchtime check"
-          />
-
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            When
-          </label>
-          <input
-            className="textInput"
-            type="datetime-local"
-            value={when}
-            onChange={(e) => setWhen(e.target.value)}
-          />
-
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            Repeat
-          </label>
-          <select
-            className="textInput"
-            value={repeat}
-            onChange={(e) => setRepeat(e.target.value)}
-          >
-            {[
-              "Never",
-              "Hourly",
-              "Daily",
-              "Weekly",
-              "Every 2 Weeks",
-              "Monthly",
-              "Every 3 Months",
-              "Every 6 Months",
-              "Yearly",
-              "Custom",
-            ].map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-
-          <div className="rowGap" style={{ marginTop: 14 }}>
-            <button className="btnPrimary" style={{ flex: 1 }} onClick={add}>
-              {editingId ? "Save changes" : "Set reminder"}
-            </button>
-            <button
-              className="btnGhost"
-              style={{ flex: 1 }}
-              onClick={() => {
-                setAdding(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </Card>
+      ) : editingId ? null : (
+        <Card>{renderReminderForm()}</Card>
       )}
     </div>
   );
