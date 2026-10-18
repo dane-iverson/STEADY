@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { ageGroupFromDateOfBirth } from "../utils/diabetes";
+import { DateOfBirthPicker } from "../components/DateOfBirthPicker";
 
 const API_BASE =
   import.meta.env.VITE_API_URL ||
@@ -66,6 +68,8 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [prototypeOpen, setPrototypeOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -259,15 +263,14 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
               onChange={(e) => updateField("surname", e.target.value)}
             />
 
-            <label className="fieldLabel" style={{ marginTop: 12 }}>
-              Date of birth
-            </label>
-            <input
-              className="textInput"
-              type="date"
-              value={form.dateOfBirth}
-              onChange={(e) => updateField("dateOfBirth", e.target.value)}
-            />
+            <div style={{ marginTop: 12 }}>
+              <DateOfBirthPicker
+                value={form.dateOfBirth}
+                onChange={(value) => updateField("dateOfBirth", value)}
+                idPrefix="signup-dob"
+                required
+              />
+            </div>
 
             <div className="formGrid" style={{ marginTop: 12 }}>
               <div>
@@ -371,19 +374,32 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
         >
           Password
         </label>
-        <input
-          id="auth-password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          className="textInput"
-          type="password"
-          minLength={mode === "signup" ? 12 : undefined}
-          maxLength={128}
-          value={form.password}
-          onChange={(e) => updateField("password", e.target.value)}
-          placeholder={
-            mode === "login" ? "Your password" : "At least 12 characters"
-          }
-        />
+        <div className="passwordField">
+          <input
+            id="auth-password"
+            autoComplete={
+              mode === "login" ? "current-password" : "new-password"
+            }
+            className="textInput"
+            type={showPassword ? "text" : "password"}
+            minLength={mode === "signup" ? 12 : undefined}
+            maxLength={128}
+            value={form.password}
+            onChange={(e) => updateField("password", e.target.value)}
+            placeholder={
+              mode === "login" ? "Your password" : "At least 12 characters"
+            }
+          />
+          <button
+            className="passwordVisibilityButton"
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
+        </div>
 
         {mode === "signup" && (
           <>
@@ -394,15 +410,30 @@ export function AuthPage({ onAuthSuccess, onPrototype }) {
             >
               Confirm password
             </label>
-            <input
-              id="auth-confirm"
-              autoComplete="new-password"
-              className="textInput"
-              type="password"
-              value={form.confirmPassword}
-              onChange={(e) => updateField("confirmPassword", e.target.value)}
-              placeholder="Repeat your password"
-            />
+            <div className="passwordField">
+              <input
+                id="auth-confirm"
+                autoComplete="new-password"
+                className="textInput"
+                type={showConfirmPassword ? "text" : "password"}
+                value={form.confirmPassword}
+                onChange={(e) => updateField("confirmPassword", e.target.value)}
+                placeholder="Repeat your password"
+              />
+              <button
+                className="passwordVisibilityButton"
+                type="button"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirmation password"
+                    : "Show confirmation password"
+                }
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </>
         )}
 

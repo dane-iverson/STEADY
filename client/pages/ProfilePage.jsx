@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
+import { DateOfBirthPicker } from "../components/DateOfBirthPicker";
 import {
   DEFAULT_GLUCOSE_RANGE_LIMITS,
   getReadingDateRange,
@@ -472,15 +473,13 @@ export function ProfilePage({
                   value={draftProfile.surname || ""}
                   onChange={(e) => updateDraft("surname", e.target.value)}
                 />
-                <label className="fieldLabel" style={{ marginTop: 12 }}>
-                  Date of birth
-                </label>
-                <input
-                  className="textInput"
-                  type="date"
-                  value={draftProfile.dateOfBirth || ""}
-                  onChange={(e) => updateDraft("dateOfBirth", e.target.value)}
-                />
+                <div style={{ marginTop: 12 }}>
+                  <DateOfBirthPicker
+                    value={draftProfile.dateOfBirth || ""}
+                    onChange={(value) => updateDraft("dateOfBirth", value)}
+                    idPrefix="profile-dob"
+                  />
+                </div>
                 <div className="formGrid" style={{ marginTop: 12 }}>
                   <div>
                     <label className="fieldLabel">Height</label>

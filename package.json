@@ -1,5 +1,6 @@
 {
   "name": "steady-app",
+  "description": "A Type 1 diabetes support prototype built with React, Vite, and Recharts, backed by an Express API with MongoDB persistence. It includes glucose tracking, reminders, trend visualizations, emergency guidance, and optional caregiver sharing.",
   "private": true,
   "version": "1.0.0",
   "type": "module",
