@@ -181,6 +181,57 @@
   margin-top: 12px;
 }
 
+.logoutDialog h2 {
+  margin: 5px 0 8px;
+  font-family: "Manrope", sans-serif;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.logoutDialog p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.logoutDialogActions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.logoutDialogCancel,
+.logoutDialogConfirm {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logoutDialogCancel {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.logoutDialogConfirm {
+  background: #a73a3a;
+  color: #fff;
+}
+
+.logoutDialogCancel:focus-visible,
+.logoutDialogConfirm:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    Reading filters
    ========================================================================== */

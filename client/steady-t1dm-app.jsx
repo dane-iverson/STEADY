@@ -159,6 +159,7 @@ export default function App() {
       sessionStorage.getItem("steady-prototype-tour-complete") === "true",
   );
   const [tourStage, setTourStage] = useState(null);
+  const [logoutPromptOpen, setLogoutPromptOpen] = useState(false);
   const [analyticsConsent, setAnalyticsConsentState] =
     useState(getAnalyticsConsent);
 
@@ -557,6 +558,11 @@ export default function App() {
   }
 
   function handleLogout() {
+    setLogoutPromptOpen(true);
+  }
+
+  function confirmLogout() {
+    setLogoutPromptOpen(false);
     sessionGeneration.invalidate();
     sessionStorage.removeItem("steady-token");
     setToken("");
@@ -875,6 +881,53 @@ export default function App() {
         />
 
         {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
+
+        {logoutPromptOpen && (
+          <div
+            className="modalBackdrop"
+            role="presentation"
+            onClick={() => setLogoutPromptOpen(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setLogoutPromptOpen(false);
+            }}
+          >
+            <section
+              className="modalPanel logoutDialog"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="logout-dialog-title"
+              aria-describedby="logout-dialog-description"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sectionKicker">
+                {isPrototype ? "PROTOTYPE" : "ACCOUNT"}
+              </div>
+              <h2 id="logout-dialog-title">
+                {isPrototype ? "Exit prototype?" : "Log out?"}
+              </h2>
+              <p id="logout-dialog-description">
+                Any unsaved changes will be lost.
+              </p>
+              <div className="logoutDialogActions">
+                <button
+                  className="logoutDialogCancel"
+                  type="button"
+                  autoFocus
+                  onClick={() => setLogoutPromptOpen(false)}
+                >
+                  Stay signed in
+                </button>
+                <button
+                  className="logoutDialogConfirm"
+                  type="button"
+                  onClick={confirmLogout}
+                >
+                  {isPrototype ? "Exit prototype" : "Log out"}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
 
         {analyticsConfigured && analyticsConsent === null && (
           <div className="consentBanner" role="dialog" aria-label="Analytics">
