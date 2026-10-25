@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./styles/app.css";
 
 import { TopBar } from "./components/TopBar";
@@ -22,6 +22,7 @@ import {
 } from "./utils/diabetes.js";
 import { DEFAULT_INSULIN_SETTINGS } from "./utils/insulin.js";
 import { buildPrototypeData } from "./data/prototypeData.js";
+import { createSessionGeneration } from "./utils/sessionGeneration.js";
 import {
   analyticsConfigured,
   getAnalyticsConsent,
@@ -121,6 +122,7 @@ function screenFromLocation() {
 }
 
 export default function App() {
+  const sessionGeneration = useRef(createSessionGeneration()).current;
   const [token, setToken] = useState(
     sessionStorage.getItem("steady-token") || "",
   );
@@ -232,14 +234,24 @@ export default function App() {
 
   useEffect(() => {
     if (!token) return;
+    let active = true;
+    const capturedGeneration = sessionGeneration.capture();
+    const controller = new AbortController();
+    const isCurrentSession = () =>
+      active &&
+      sessionGeneration.isCurrent(capturedGeneration) &&
+      sessionStorage.getItem("steady-token") === token;
 
     async function loadProfile() {
       try {
         const response = await fetch(`${API_BASE}/user/me`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
+        if (!isCurrentSession()) return;
 
         if (!response.ok) {
+          sessionGeneration.invalidate();
           sessionStorage.removeItem("steady-token");
           setToken("");
           setScreen("welcome", { replace: true });
@@ -247,14 +259,20 @@ export default function App() {
         }
 
         const payload = await response.json();
+        if (!isCurrentSession()) return;
         hydrateFromUser(payload.user);
         setOnboardingComplete(payload.user?.onboardingComplete ?? true);
         const connectionResponse = await fetch(`${API_BASE}/user/connections`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
+        if (!isCurrentSession()) return;
         if (connectionResponse.ok) {
-          setConnectionRequests(await connectionResponse.json());
+          const connections = await connectionResponse.json();
+          if (!isCurrentSession()) return;
+          setConnectionRequests(connections);
         }
+        if (!isCurrentSession()) return;
         const requestedScreen = screenFromLocation();
         const restoredScreen =
           payload.user?.accountType === "caregiver"
@@ -264,27 +282,57 @@ export default function App() {
               : requestedScreen;
         setScreen(restoredScreen, { replace: true });
       } catch (error) {
-        console.error("Failed to load user profile.", error);
+        if (isCurrentSession() && error.name !== "AbortError") {
+          console.error("Failed to load user profile.", error);
+        }
       }
     }
 
     loadProfile();
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [token]);
 
   useEffect(() => {
     if (!token) return;
+    let active = true;
+    const capturedGeneration = sessionGeneration.capture();
+    let controller;
     const refreshConnections = async () => {
       try {
+        controller?.abort();
+        controller = new AbortController();
         const response = await fetch(`${API_BASE}/user/connections`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
-        if (response.ok) setConnectionRequests(await response.json());
+        if (
+          !active ||
+          !sessionGeneration.isCurrent(capturedGeneration) ||
+          sessionStorage.getItem("steady-token") !== token
+        )
+          return;
+        if (response.ok) {
+          const connections = await response.json();
+          if (
+            active &&
+            sessionGeneration.isCurrent(capturedGeneration) &&
+            sessionStorage.getItem("steady-token") === token
+          )
+            setConnectionRequests(connections);
+        }
       } catch {
         // A transient refresh failure should not interrupt the current screen.
       }
     };
     const interval = window.setInterval(refreshConnections, 30000);
-    return () => window.clearInterval(interval);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      controller?.abort();
+    };
   }, [token]);
 
   useEffect(() => {
@@ -343,17 +391,26 @@ export default function App() {
 
   async function refreshUserState() {
     if (!token) return;
+    const requestToken = token;
+    const capturedGeneration = sessionGeneration.capture();
+    const isCurrentSession = () =>
+      sessionGeneration.isCurrent(capturedGeneration) &&
+      sessionStorage.getItem("steady-token") === requestToken;
     const response = await fetch(`${API_BASE}/user/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${requestToken}` },
     });
+    if (!isCurrentSession()) return;
     if (!response.ok) throw new Error("Could not refresh the inbox.");
     const payload = await response.json();
+    if (!isCurrentSession()) return;
     hydrateFromUser(payload.user);
     const connectionsResponse = await fetch(`${API_BASE}/user/connections`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${requestToken}` },
     });
+    if (!isCurrentSession()) return;
     if (connectionsResponse.ok) {
-      setConnectionRequests(await connectionsResponse.json());
+      const connections = await connectionsResponse.json();
+      if (isCurrentSession()) setConnectionRequests(connections);
     }
   }
 
@@ -427,6 +484,7 @@ export default function App() {
 
   // Session and prototype transitions reset or hydrate all account-scoped state.
   function handleAuthSuccess(user, authToken, isNewAccount = false) {
+    sessionGeneration.invalidate();
     sessionStorage.setItem("steady-token", authToken);
     setToken(authToken);
     hydrateFromUser(user);
@@ -459,6 +517,7 @@ export default function App() {
   }
 
   function startPrototype(group) {
+    sessionGeneration.invalidate();
     const data = buildPrototypeData(group);
     resetUserState();
     sessionStorage.setItem("steady-prototype", "true");
@@ -498,6 +557,7 @@ export default function App() {
   }
 
   function handleLogout() {
+    sessionGeneration.invalidate();
     sessionStorage.removeItem("steady-token");
     setToken("");
     resetUserState();
