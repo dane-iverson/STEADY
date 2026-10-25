@@ -5,6 +5,8 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  Info,
+  LocateFixed,
   X,
 } from "lucide-react";
 
@@ -113,7 +115,7 @@ export function GuidedTour({
 }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
-  const [coachPosition, setCoachPosition] = useState("bottom");
+  const [showDetails, setShowDetails] = useState(false);
   const steps = TOUR_STEPS[mode] || TOUR_STEPS.patient;
   const step = steps[stepIndex];
 
@@ -131,11 +133,6 @@ export function GuidedTour({
     const target = document.querySelector(step.target);
     if (!target) return;
 
-    setCoachPosition(
-      target.getBoundingClientRect().top > window.innerHeight * 0.42
-        ? "top"
-        : "bottom",
-    );
     const previousDescription = target.getAttribute("aria-describedby");
     target.classList.add("guidedTourTarget");
     target.setAttribute(
@@ -167,7 +164,22 @@ export function GuidedTour({
 
   useEffect(() => {
     setCollapsed(false);
+    setShowDetails(false);
   }, [stage, stepIndex, mode]);
+
+  useEffect(() => {
+    if (stage !== "tour") return;
+    const minimizeForInput = (event) => {
+      if (
+        event.target.matches("input, textarea, select") &&
+        !event.target.closest(".guidedTourCoach")
+      ) {
+        setCollapsed(true);
+      }
+    };
+    document.addEventListener("focusin", minimizeForInput);
+    return () => document.removeEventListener("focusin", minimizeForInput);
+  }, [stage]);
 
   if (!stage) return null;
 
@@ -233,7 +245,8 @@ export function GuidedTour({
   if (collapsed) {
     return (
       <aside
-        className={`guidedTourCoach guidedTourCoachCollapsed guidedTourCoach-${coachPosition}`}
+        className="guidedTourCoach guidedTourCoachCollapsed"
+        aria-label="Guided tour"
       >
         <button
           className="guidedTourMinimized"
@@ -241,18 +254,24 @@ export function GuidedTour({
           onClick={() => setCollapsed(false)}
           aria-label="Show guided tour controls"
         >
-          <BookOpen size={15} /> Tour {stepIndex + 1} of {steps.length}
+          <BookOpen size={15} /> {step.title}
+          <span>
+            {stepIndex + 1}/{steps.length}
+          </span>
           <ChevronUp size={15} />
         </button>
+        <span
+          id="guided-tour-description"
+          className="guidedTourScreenReaderOnly"
+        >
+          {step.body}
+        </span>
       </aside>
     );
   }
 
   return (
-    <aside
-      className={`guidedTourCoach guidedTourCoach-${coachPosition}`}
-      aria-label="Guided tour"
-    >
+    <aside className="guidedTourCoach" aria-label="Guided tour">
       <section
         className="guidedTourCard"
         aria-labelledby="guided-tour-title"
@@ -261,12 +280,25 @@ export function GuidedTour({
       >
         <div className="guidedTourHeader">
           <div className="guidedTourMeta">
-            <span className="guidedTourIcon" aria-hidden="true">
-              <BookOpen size={17} />
-            </span>
             <span className="guidedTourCount">
               {stepIndex + 1} of {steps.length}
             </span>
+            <nav className="guidedTourSteps" aria-label="Tour steps">
+              {steps.map((entry, index) => (
+                <button
+                  key={`${entry.screen}-${index}`}
+                  type="button"
+                  aria-label={`Step ${index + 1}: ${entry.title}`}
+                  aria-current={index === stepIndex ? "step" : undefined}
+                  title={entry.title}
+                  onClick={() => setStepIndex(index)}
+                >
+                  <span
+                    className={index < stepIndex ? "guidedTourStepVisited" : ""}
+                  />
+                </button>
+              ))}
+            </nav>
           </div>
           <div className="rowGap">
             <button
@@ -287,34 +319,62 @@ export function GuidedTour({
             </button>
           </div>
         </div>
-        <div
-          className="guidedTourProgress"
-          role="progressbar"
-          aria-valuemin={1}
-          aria-valuemax={steps.length}
-          aria-valuenow={stepIndex + 1}
-          aria-label="Tour progress"
-        >
-          <span
-            style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }}
-          />
-        </div>
         <h2 id="guided-tour-title" className="guidedTourTitle">
           {step.title}
         </h2>
         <p id="guided-tour-description" className="guidedTourBody">
-          {step.body}
+          {step.screen === "dashboard"
+            ? "Tap the highlighted glucose tool to try your first step."
+            : step.screen === "glucose"
+              ? isPrototype
+                ? "Try a sample value and choose a meal context."
+                : "Enter a real meter value and choose its meal context."
+              : step.screen === "reminders"
+                ? "Tap Add reminder, explore the form, then save or cancel."
+                : step.screen === "trends"
+                  ? "Switch Daily / Weekly or choose a date range."
+                  : step.screen === "emergency"
+                    ? "Read the highlighted guidance and find your emergency contact."
+                    : step.body}
         </p>
-        {(step.safetyNote || isPrototype) && (
-          <p className="guidedTourNote">
-            {step.safetyNote ||
-              "Sample data only. Changes reset when you exit or refresh the prototype."}
+        {step.safetyNote && <p className="guidedTourNote">{step.safetyNote}</p>}
+        {showDetails && (
+          <p
+            id="guided-tour-details"
+            className="guidedTourBody guidedTourDetails"
+          >
+            {step.body}
+            {isPrototype && " Sample data resets on exit or refresh."}
           </p>
         )}
         <div className="guidedTourActions">
-          <button className="btnGhost" type="button" onClick={onClose}>
-            Skip
-          </button>
+          <div className="rowGap">
+            <button
+              className="iconBtn"
+              type="button"
+              onClick={() => {
+                const target = document.querySelector(step.target);
+                target?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              aria-label="Locate this control"
+              title="Locate this control"
+            >
+              <LocateFixed size={17} />
+            </button>
+            <button
+              className="iconBtn"
+              type="button"
+              onClick={() => setShowDetails((current) => !current)}
+              aria-label={
+                showDetails ? "Hide tour details" : "More tour details"
+              }
+              aria-expanded={showDetails}
+              aria-controls="guided-tour-details"
+              title="More details"
+            >
+              <Info size={17} />
+            </button>
+          </div>
           <div className="rowGap">
             {stepIndex > 0 && (
               <button

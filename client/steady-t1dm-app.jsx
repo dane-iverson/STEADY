@@ -800,8 +800,6 @@ export default function App() {
           )}
         </div>
 
-        {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
-
         <GuidedTour
           stage={tourStage}
           screen={routedScreen}
@@ -813,6 +811,8 @@ export default function App() {
           onClose={closeTour}
           onComplete={completeTour}
         />
+
+        {showNav && <NavBar screen={routedScreen} setScreen={setScreen} />}
 
         {analyticsConfigured && analyticsConsent === null && (
           <div className="consentBanner" role="dialog" aria-label="Analytics">

@@ -858,60 +858,92 @@
 }
 
 .guidedTourCoach {
-  position: fixed;
-  z-index: 30;
-  left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom, 0px));
-  width: min(430px, calc(100vw - 24px));
-  max-height: min(42svh, 300px);
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+  max-height: 32dvh;
   overflow-y: auto;
-  transform: translateX(-50%);
-  pointer-events: none;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .guidedTourCoachCollapsed {
-  right: 10px;
-  left: auto;
-  width: auto;
   max-height: none;
-  overflow: visible;
-  transform: none;
-}
-
-.guidedTourCoach-top {
-  top: max(12px, env(safe-area-inset-top, 0px));
-  bottom: auto;
 }
 
 .guidedTourMinimized {
-  min-height: 38px;
-  padding: 8px 11px;
-  display: inline-flex;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 16px;
+  display: flex;
   align-items: center;
   gap: 7px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 0;
   background: var(--surface);
   color: var(--brand-dark);
-  box-shadow: 0 8px 24px rgba(20, 45, 40, 0.2);
   font:
     700 11px/1.2 "DM Sans",
     sans-serif;
   cursor: pointer;
-  pointer-events: auto;
+}
+
+.guidedTourMinimized span {
+  margin-left: auto;
 }
 
 .guidedTourCard {
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 6px 16px 8px;
   background: var(--surface);
-  box-shadow: 0 12px 34px rgba(20, 45, 40, 0.22);
-  pointer-events: auto;
 }
 
 .guidedTourCard .guidedTourHeader {
-  margin-bottom: 7px;
+  margin-bottom: 0;
+}
+
+.guidedTourCoach .iconBtn {
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.guidedTourSteps {
+  display: flex;
+}
+
+.guidedTourSteps button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.guidedTourSteps span {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--brand);
+  border-radius: 50%;
+}
+
+.guidedTourSteps .guidedTourStepVisited {
+  background: var(--brand-tint);
+}
+
+.guidedTourSteps [aria-current="step"] span {
+  background: var(--brand);
+  outline: 2px solid var(--brand-tint);
+  outline-offset: 3px;
+}
+
+.guidedTourCoach button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
 }
 
 .guidedTourMeta {
@@ -947,28 +979,40 @@
 }
 
 .guidedTourCard .guidedTourNote {
-  margin-top: 8px;
-  padding: 7px 9px;
+  margin-top: 5px;
+  padding: 0 0 0 8px;
   font-size: 10.5px;
 }
 
 .guidedTourCard .guidedTourActions {
-  margin-top: 10px;
+  margin-top: 3px;
 }
 
 .guidedTourCard .guidedTourActions .btnPrimary,
 .guidedTourCard .guidedTourActions .btnGhost {
-  min-height: 36px;
+  min-height: 44px;
   padding: 7px 11px;
   font-size: 11.5px;
 }
 
 .guidedTourTarget {
   position: relative !important;
-  z-index: 29 !important;
   outline: 3px solid var(--brand) !important;
   outline-offset: 4px;
-  scroll-margin-block: 35vh;
+  scroll-margin-block: 16px;
+}
+
+.guidedTourDetails {
+  margin-top: 8px;
+}
+
+.guidedTourScreenReaderOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .guidedTourCount {
@@ -1109,12 +1153,7 @@
   }
 
   .guidedTourCoach {
-    width: calc(100vw - 20px);
-    max-height: min(42svh, 330px);
-  }
-
-  .guidedTourCoach-top {
-    top: max(10px, env(safe-area-inset-top, 0px));
+    max-height: 30dvh;
   }
 
   .gettingStartedActions {
