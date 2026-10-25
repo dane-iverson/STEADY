@@ -21,6 +21,7 @@ export function GettingStarted({
   complete = false,
   onStartTour,
   setScreen,
+  onOpenPairing,
 }) {
   if (complete) {
     return (
@@ -57,10 +58,12 @@ export function GettingStarted({
         <button
           className="btnGhost gettingStartedAction"
           type="button"
-          onClick={() =>
-            document
-              .querySelector(".caregiverConnectionPanel")
-              ?.scrollIntoView({ behavior: "smooth", block: "center" })
+          onClick={
+            onOpenPairing ||
+            (() =>
+              document
+                .querySelector(".caregiverConnectionPanel")
+                ?.scrollIntoView({ behavior: "smooth", block: "center" }))
           }
         >
           <ArrowRight size={15} /> Find pairing requests

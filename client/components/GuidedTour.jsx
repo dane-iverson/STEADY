@@ -133,6 +133,10 @@ export function GuidedTour({
     const target = document.querySelector(step.target);
     if (!target) return;
 
+    target.dispatchEvent(
+      new CustomEvent("steady:reveal-tour-target", { bubbles: true }),
+    );
+
     const previousDescription = target.getAttribute("aria-describedby");
     target.classList.add("guidedTourTarget");
     target.setAttribute(
@@ -141,7 +145,9 @@ export function GuidedTour({
         .filter(Boolean)
         .join(" "),
     );
-    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    const scrollFrame = requestAnimationFrame(() =>
+      target.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
 
     const advanceFromTarget = () =>
       setStepIndex((current) => Math.min(current + 1, steps.length - 1));
@@ -150,6 +156,7 @@ export function GuidedTour({
     }
 
     return () => {
+      cancelAnimationFrame(scrollFrame);
       target.classList.remove("guidedTourTarget");
       if (previousDescription) {
         target.setAttribute("aria-describedby", previousDescription);
