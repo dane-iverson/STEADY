@@ -352,8 +352,15 @@ router.put("/me", async (req, res) => {
   try {
     const updates = req.body;
     const allowedFields = new Set([
-      "revision", "name", "ageGroup", "onboardingComplete", "readings",
-      "reminders", "insulinSettings", "profile", "sharing",
+      "revision",
+      "name",
+      "ageGroup",
+      "onboardingComplete",
+      "readings",
+      "reminders",
+      "insulinSettings",
+      "profile",
+      "sharing",
     ]);
     if (
       !isPlainObject(updates) ||
@@ -367,7 +374,9 @@ router.put("/me", async (req, res) => {
     const has = (key) => Object.hasOwn(updates, key);
     const profile = has("profile") ? cleanProfile(updates.profile) : null;
     const sharing = has("sharing") ? cleanSharing(updates.sharing) : null;
-    const insulinSettings = has("insulinSettings") ? updates.insulinSettings : {};
+    const insulinSettings = has("insulinSettings")
+      ? updates.insulinSettings
+      : {};
     const settingKeys = [
       "insulinType",
       "deliveryMethod",
@@ -408,7 +417,8 @@ router.put("/me", async (req, res) => {
     }
     if ((currentUser.revision ?? 0) !== updates.revision) {
       return res.status(409).json({
-        message: "This account changed elsewhere. Reload the latest data before saving again.",
+        message:
+          "This account changed elsewhere. Reload the latest data before saving again.",
         revision: currentUser.revision ?? 0,
       });
     }
@@ -452,7 +462,9 @@ router.put("/me", async (req, res) => {
           _id: req.userId,
           $or: [
             { revision: updates.revision },
-            ...(updates.revision === 0 ? [{ revision: { $exists: false } }] : []),
+            ...(updates.revision === 0
+              ? [{ revision: { $exists: false } }]
+              : []),
           ],
         },
         { $set: safeUpdate, $inc: { revision: 1 } },
@@ -484,7 +496,8 @@ router.put("/me", async (req, res) => {
 
     if (!user) {
       return res.status(409).json({
-        message: "This account changed elsewhere. Reload the latest data before saving again.",
+        message:
+          "This account changed elsewhere. Reload the latest data before saving again.",
       });
     }
 
@@ -670,10 +683,10 @@ router.patch("/connections/:connectionId", async (req, res) => {
       }
       const updatedSharing = { ...sharing, caregivers };
       if (databaseConfigured()) {
-        await User.findByIdAndUpdate(
-          patient._id,
-          { $set: { sharing: updatedSharing }, $inc: { revision: 1 } },
-        );
+        await User.findByIdAndUpdate(patient._id, {
+          $set: { sharing: updatedSharing },
+          $inc: { revision: 1 },
+        });
       } else {
         patient.sharing = updatedSharing;
         patient.revision = (patient.revision ?? 0) + 1;
@@ -712,10 +725,10 @@ router.delete("/connections/:connectionId", async (req, res) => {
         ),
       };
       if (databaseConfigured()) {
-        await User.findByIdAndUpdate(
-          patient._id,
-          { $set: { sharing: updatedSharing }, $inc: { revision: 1 } },
-        );
+        await User.findByIdAndUpdate(patient._id, {
+          $set: { sharing: updatedSharing },
+          $inc: { revision: 1 },
+        });
         await User.findByIdAndUpdate(caregiver._id, {
           $pull: { sharedItems: { senderId: String(patient._id) } },
         });

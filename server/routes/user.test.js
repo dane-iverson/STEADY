@@ -267,10 +267,13 @@ test("caregiver glucose feed respects current consent and pairing; messages are 
     assert.equal(firstPayload.user.sharing.on, true);
     assert.deepEqual(firstPayload.user.reminders, patient.reminders);
 
-    const secondSave = await save({
-      onboardingComplete: false,
-      insulinSettings: { carbRatio: "10" },
-    }, 1);
+    const secondSave = await save(
+      {
+        onboardingComplete: false,
+        insulinSettings: { carbRatio: "10" },
+      },
+      1,
+    );
     assert.equal(secondSave.status, 200);
     const secondPayload = await secondSave.json();
     assert.equal(secondPayload.user.revision, 2);
@@ -280,7 +283,10 @@ test("caregiver glucose feed respects current consent and pairing; messages are 
     assert.equal(secondPayload.user.insulinSettings.carbRatio, "10");
     assert.equal(secondPayload.user.insulinSettings.sensitivity, "3");
 
-    const staleSave = await save({ sharing: { ...patient.sharing, on: false } }, 1);
+    const staleSave = await save(
+      { sharing: { ...patient.sharing, on: false } },
+      1,
+    );
     assert.equal(staleSave.status, 409);
     assert.equal(patient.sharing.on, true);
 

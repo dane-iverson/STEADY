@@ -373,25 +373,30 @@ export default function App() {
     const isCurrentSession = () =>
       sessionGeneration.isCurrent(capturedGeneration) &&
       hasActiveAuthSession(requestToken, isPrototype, sessionStorage);
-    const saveTask = saveQueueRef.current.catch(() => {}).then(async () => {
-      if (!isCurrentSession()) return;
-      const response = await fetch(`${API_BASE}/user/me`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${requestToken}`,
-        },
-        body: JSON.stringify({ ...nextOverrides, revision: revisionRef.current }),
+    const saveTask = saveQueueRef.current
+      .catch(() => {})
+      .then(async () => {
+        if (!isCurrentSession()) return;
+        const response = await fetch(`${API_BASE}/user/me`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${requestToken}`,
+          },
+          body: JSON.stringify({
+            ...nextOverrides,
+            revision: revisionRef.current,
+          }),
+        });
+        if (!isCurrentSession()) return;
+        if (response.status === 409) {
+          setSaveConflict(true);
+          return;
+        }
+        if (!response.ok) throw new Error("Profile save failed.");
+        const payload = await response.json();
+        if (isCurrentSession()) revisionRef.current = payload.user.revision;
       });
-      if (!isCurrentSession()) return;
-      if (response.status === 409) {
-        setSaveConflict(true);
-        return;
-      }
-      if (!response.ok) throw new Error("Profile save failed.");
-      const payload = await response.json();
-      if (isCurrentSession()) revisionRef.current = payload.user.revision;
-    });
     saveQueueRef.current = saveTask;
     try {
       await saveTask;
