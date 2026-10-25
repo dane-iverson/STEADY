@@ -29,8 +29,8 @@ export function enterAuthenticatedSession(storage, token) {
 export function hasActiveAuthSession(token, isPrototype, storage) {
   return Boolean(
     token &&
-      !isPrototype &&
-      storage.getItem(TOKEN_KEY) === token &&
-      storage.getItem(PROTOTYPE_KEY) !== "true",
+    !isPrototype &&
+    storage.getItem(TOKEN_KEY) === token &&
+    storage.getItem(PROTOTYPE_KEY) !== "true",
   );
 }

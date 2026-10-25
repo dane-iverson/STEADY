@@ -21,7 +21,10 @@ test("prototype entry clears the active auth token", () => {
   enterPrototypeSession(storage, "teen");
 
   assert.equal(storage.getItem("steady-token"), null);
-  assert.deepEqual(resolveStoredSession(storage), { token: "", isPrototype: true });
+  assert.deepEqual(resolveStoredSession(storage), {
+    token: "",
+    isPrototype: true,
+  });
   assert.equal(hasActiveAuthSession("private-token", false, storage), false);
   assert.equal(hasActiveAuthSession("", true, storage), false);
 });
@@ -33,7 +36,10 @@ test("mixed persisted flags restart in prototype-only mode", () => {
     "steady-prototype-group": "teen",
   });
 
-  assert.deepEqual(resolveStoredSession(storage), { token: "", isPrototype: true });
+  assert.deepEqual(resolveStoredSession(storage), {
+    token: "",
+    isPrototype: true,
+  });
   assert.equal(storage.getItem("steady-token"), null);
 });
 
