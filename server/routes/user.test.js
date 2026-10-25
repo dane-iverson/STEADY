@@ -108,6 +108,11 @@ test("caregiver glucose feed respects current consent and pairing; messages are 
     email: "patient@example.test",
     accountType: "patient",
   });
+  patient.insulinSettings = {
+    insulinType: "rapid",
+    carbRatio: "12",
+    sensitivity: "3",
+  };
   const caregiver = createUserDocument({
     _id: "feed-caregiver",
     name: "Caregiver",
@@ -246,24 +251,39 @@ test("caregiver glucose feed respects current consent and pairing; messages are 
       400,
     );
     const nextReading = { ...reading, id: 2, v: 5.8 };
-    const save = () =>
+    const save = (updates, revision) =>
       fetch(`${base}/me`, {
         method: "PUT",
         headers: {
           "content-type": "application/json",
           authorization: `Bearer ${token(patient)}`,
         },
-        body: JSON.stringify({
-          name: patient.name,
-          profile: patient.profile,
-          sharing: patient.sharing,
-          readings: [reading, nextReading],
-          reminders: [],
-          insulinSettings: {},
-        }),
+        body: JSON.stringify({ ...updates, revision }),
       });
-    assert.equal((await save()).status, 200);
-    assert.equal((await save()).status, 200);
+    const firstSave = await save({ readings: [reading, nextReading] }, 0);
+    assert.equal(firstSave.status, 200);
+    const firstPayload = await firstSave.json();
+    assert.equal(firstPayload.user.revision, 1);
+    assert.equal(firstPayload.user.sharing.on, true);
+    assert.deepEqual(firstPayload.user.reminders, patient.reminders);
+
+    const secondSave = await save({
+      onboardingComplete: false,
+      insulinSettings: { carbRatio: "10" },
+    }, 1);
+    assert.equal(secondSave.status, 200);
+    const secondPayload = await secondSave.json();
+    assert.equal(secondPayload.user.revision, 2);
+    assert.deepEqual(secondPayload.user.readings, [reading, nextReading]);
+    assert.equal(secondPayload.user.sharing.on, true);
+    assert.equal(secondPayload.user.insulinSettings.insulinType, "rapid");
+    assert.equal(secondPayload.user.insulinSettings.carbRatio, "10");
+    assert.equal(secondPayload.user.insulinSettings.sensitivity, "3");
+
+    const staleSave = await save({ sharing: { ...patient.sharing, on: false } }, 1);
+    assert.equal(staleSave.status, 409);
+    assert.equal(patient.sharing.on, true);
+
     items = await load();
     assert.equal(items.filter((item) => item.automatic).length, 2);
     assert.equal(
@@ -271,6 +291,23 @@ test("caregiver glucose feed respects current consent and pairing; messages are 
         .value,
       5.8,
     );
+
+    const concurrentSaves = await Promise.all([
+      save({ readings: [reading] }, 2),
+      save({ sharing: { ...patient.sharing, on: false } }, 2),
+    ]);
+    assert.deepEqual(
+      concurrentSaves.map((response) => response.status).sort(),
+      [200, 409],
+    );
+    assert.equal(patient.revision, 3);
+    if (concurrentSaves[0].status === 200) {
+      assert.equal(patient.readings.length, 1);
+      assert.equal(patient.sharing.on, true);
+    } else {
+      assert.equal(patient.readings.length, 2);
+      assert.equal(patient.sharing.on, false);
+    }
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

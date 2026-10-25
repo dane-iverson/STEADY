@@ -218,6 +218,7 @@ function sanitizeUser(user) {
     email: user.email,
     accountType: user.accountType || "patient",
     onboardingComplete: user.onboardingComplete ?? true,
+    revision: user.revision ?? 0,
     ageGroup: user.ageGroup,
     readings: user.readings || [],
     reminders: user.reminders || [],
@@ -350,12 +351,23 @@ router.get("/me", async (req, res) => {
 router.put("/me", async (req, res) => {
   try {
     const updates = req.body;
-    if (!isPlainObject(updates)) {
+    const allowedFields = new Set([
+      "revision", "name", "ageGroup", "onboardingComplete", "readings",
+      "reminders", "insulinSettings", "profile", "sharing",
+    ]);
+    if (
+      !isPlainObject(updates) ||
+      !Number.isInteger(updates.revision) ||
+      updates.revision < 0 ||
+      Object.keys(updates).some((key) => !allowedFields.has(key)) ||
+      Object.keys(updates).length === 1
+    ) {
       return res.status(400).json({ message: "Invalid profile data." });
     }
-    const profile = cleanProfile(updates.profile ?? defaultProfile());
-    const sharing = cleanSharing(updates.sharing ?? defaultSharing());
-    const insulinSettings = updates.insulinSettings ?? {};
+    const has = (key) => Object.hasOwn(updates, key);
+    const profile = has("profile") ? cleanProfile(updates.profile) : null;
+    const sharing = has("sharing") ? cleanSharing(updates.sharing) : null;
+    const insulinSettings = has("insulinSettings") ? updates.insulinSettings : {};
     const settingKeys = [
       "insulinType",
       "deliveryMethod",
@@ -368,19 +380,20 @@ router.put("/me", async (req, res) => {
       "insulinDuration",
     ];
     if (
-      !validString(updates.name ?? "", 100) ||
-      (updates.onboardingComplete !== undefined &&
+      (has("name") && !validString(updates.name, 100)) ||
+      (has("ageGroup") && !validString(updates.ageGroup, 30)) ||
+      (has("onboardingComplete") &&
         typeof updates.onboardingComplete !== "boolean") ||
-      !profile ||
-      !sharing ||
+      (has("profile") && !profile) ||
+      (has("sharing") && !sharing) ||
       !isPlainObject(insulinSettings) ||
       !settingKeys.every(
         (key) =>
           insulinSettings[key] === undefined ||
           validString(String(insulinSettings[key]), 100),
       ) ||
-      !cleanRecordArray(updates.readings ?? [], 10000) ||
-      !cleanRecordArray(updates.reminders ?? [], 1000)
+      (has("readings") && !cleanRecordArray(updates.readings, 10000)) ||
+      (has("reminders") && !cleanRecordArray(updates.reminders, 1000))
     ) {
       return res.status(400).json({ message: "Invalid profile data." });
     }
@@ -393,43 +406,86 @@ router.put("/me", async (req, res) => {
     if (!currentUser) {
       return res.status(404).json({ message: "User not found." });
     }
-    const derivedAgeGroup = ageGroupFromDateOfBirth(profile.dateOfBirth);
-    const safeUpdate = {
-      name: updates.name || "",
-      ...(typeof updates.onboardingComplete === "boolean"
-        ? { onboardingComplete: updates.onboardingComplete }
-        : {}),
-      ageGroup:
-        currentUser.accountType === "caregiver"
-          ? "caregiver"
-          : derivedAgeGroup || currentUser.ageGroup || "teen",
-      readings: updates.readings ?? [],
-      reminders: updates.reminders ?? [],
-      insulinSettings: Object.fromEntries(
-        settingKeys
-          .filter((key) => insulinSettings[key] !== undefined)
-          .map((key) => [key, String(insulinSettings[key])]),
-      ),
-      profile,
-      sharing,
-    };
+    if ((currentUser.revision ?? 0) !== updates.revision) {
+      return res.status(409).json({
+        message: "This account changed elsewhere. Reload the latest data before saving again.",
+        revision: currentUser.revision ?? 0,
+      });
+    }
+
+    const safeUpdate = {};
+    if (has("name")) safeUpdate.name = updates.name;
+    if (has("onboardingComplete")) {
+      safeUpdate.onboardingComplete = updates.onboardingComplete;
+    }
+    if (has("readings")) safeUpdate.readings = updates.readings;
+    if (has("reminders")) safeUpdate.reminders = updates.reminders;
+    if (has("profile")) {
+      safeUpdate.profile = profile;
+      if (!has("name")) safeUpdate.name = profile.name || "";
+      if (!has("ageGroup")) {
+        safeUpdate.ageGroup =
+          currentUser.accountType === "caregiver"
+            ? "caregiver"
+            : ageGroupFromDateOfBirth(profile.dateOfBirth) ||
+              currentUser.ageGroup ||
+              "teen";
+      }
+    }
+    if (has("ageGroup")) safeUpdate.ageGroup = updates.ageGroup;
+    if (has("sharing")) safeUpdate.sharing = sharing;
+    if (has("insulinSettings")) {
+      for (const key of settingKeys) {
+        if (insulinSettings[key] !== undefined) {
+          safeUpdate[`insulinSettings.${key}`] = String(insulinSettings[key]);
+        }
+      }
+    }
+    if (Object.keys(safeUpdate).length === 0) {
+      return res.status(400).json({ message: "No profile fields to update." });
+    }
 
     let user;
     if (databaseConfigured()) {
-      user = await User.findByIdAndUpdate(req.userId, safeUpdate, {
-        new: true,
-      });
+      user = await User.findOneAndUpdate(
+        {
+          _id: req.userId,
+          $or: [
+            { revision: updates.revision },
+            ...(updates.revision === 0 ? [{ revision: { $exists: false } }] : []),
+          ],
+        },
+        { $set: safeUpdate, $inc: { revision: 1 } },
+        { new: true, runValidators: true },
+      );
     } else {
       const index = memoryUsers.findIndex((entry) => entry._id === req.userId);
       if (index === -1) {
         return res.status(404).json({ message: "User not found." });
       }
-      memoryUsers[index] = { ...memoryUsers[index], ...safeUpdate };
+      const nestedSettings = Object.fromEntries(
+        Object.entries(safeUpdate)
+          .filter(([key]) => key.startsWith("insulinSettings."))
+          .map(([key, value]) => [key.slice("insulinSettings.".length), value]),
+      );
+      for (const key of Object.keys(safeUpdate)) {
+        if (!key.startsWith("insulinSettings.")) {
+          memoryUsers[index][key] = safeUpdate[key];
+        }
+      }
+      memoryUsers[index].insulinSettings = {
+        ...(memoryUsers[index].insulinSettings || {}),
+        ...nestedSettings,
+      };
+      memoryUsers[index].revision = updates.revision + 1;
+      memoryUsers[index].updatedAt = new Date().toISOString();
       user = memoryUsers[index];
     }
 
     if (!user) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(409).json({
+        message: "This account changed elsewhere. Reload the latest data before saving again.",
+      });
     }
 
     res.json({ user: sanitizeUser(user) });
@@ -614,9 +670,13 @@ router.patch("/connections/:connectionId", async (req, res) => {
       }
       const updatedSharing = { ...sharing, caregivers };
       if (databaseConfigured()) {
-        await User.findByIdAndUpdate(patient._id, { sharing: updatedSharing });
+        await User.findByIdAndUpdate(
+          patient._id,
+          { $set: { sharing: updatedSharing }, $inc: { revision: 1 } },
+        );
       } else {
         patient.sharing = updatedSharing;
+        patient.revision = (patient.revision ?? 0) + 1;
       }
     }
     res.json({ status: connection.status });
@@ -652,12 +712,16 @@ router.delete("/connections/:connectionId", async (req, res) => {
         ),
       };
       if (databaseConfigured()) {
-        await User.findByIdAndUpdate(patient._id, { sharing: updatedSharing });
+        await User.findByIdAndUpdate(
+          patient._id,
+          { $set: { sharing: updatedSharing }, $inc: { revision: 1 } },
+        );
         await User.findByIdAndUpdate(caregiver._id, {
           $pull: { sharedItems: { senderId: String(patient._id) } },
         });
       } else {
         patient.sharing = updatedSharing;
+        patient.revision = (patient.revision ?? 0) + 1;
         caregiver.sharedItems = (caregiver.sharedItems || []).filter(
           (item) => item.senderId !== String(patient._id),
         );

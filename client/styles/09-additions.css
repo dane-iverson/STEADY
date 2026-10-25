@@ -578,6 +578,42 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
+.saveConflictBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #a73a3a;
+  background: #fff1ef;
+  color: #702820;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.saveConflictBanner p {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+.saveConflictBanner button {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #a73a3a;
+  border-radius: 6px;
+  background: #a73a3a;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saveConflictBanner button:focus-visible {
+  outline: 2px solid #702820;
+  outline-offset: 2px;
+}
+
 .prototypeEntry {
   display: flex;
   flex-direction: column;

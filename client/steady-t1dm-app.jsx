@@ -129,6 +129,8 @@ function screenFromLocation() {
 
 export default function App() {
   const sessionGeneration = useRef(createSessionGeneration()).current;
+  const revisionRef = useRef(0);
+  const saveQueueRef = useRef(Promise.resolve());
   const [initialSession] = useState(() => resolveStoredSession(sessionStorage));
   const [token, setToken] = useState(initialSession.token);
   const [isPrototype, setIsPrototype] = useState(initialSession.isPrototype);
@@ -162,6 +164,7 @@ export default function App() {
   );
   const [tourStage, setTourStage] = useState(null);
   const [logoutPromptOpen, setLogoutPromptOpen] = useState(false);
+  const [saveConflict, setSaveConflict] = useState(false);
   const [analyticsConsent, setAnalyticsConsentState] =
     useState(getAnalyticsConsent);
 
@@ -346,6 +349,7 @@ export default function App() {
 
   // Keep API responses and initial state aligned with the values rendered by the app.
   function hydrateFromUser(user) {
+    revisionRef.current = user.revision ?? 0;
     setName(user.name || "");
     setAgeGroup(user.ageGroup || "teen");
     setReadings(user.readings || defaultReadings);
@@ -361,32 +365,36 @@ export default function App() {
     setOnboardingComplete(user.onboardingComplete ?? true);
   }
 
-  // Persist a complete snapshot so each update uses the same API payload shape.
+  // Serialize field-scoped writes so rapid local edits advance revisions in order.
   async function persistUserState(nextOverrides = {}) {
     if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
-
-    const payload = {
-      ageGroup,
-      readings,
-      reminders,
-      profile,
-      sharing,
-      insulinSettings,
-      onboardingComplete,
-      sharedItems,
-      ...nextOverrides,
-      name: nextOverrides.name ?? nextOverrides.profile?.name ?? name,
-    };
-
-    try {
-      await fetch(`${API_BASE}/user/me`, {
+    const requestToken = token;
+    const capturedGeneration = sessionGeneration.capture();
+    const isCurrentSession = () =>
+      sessionGeneration.isCurrent(capturedGeneration) &&
+      hasActiveAuthSession(requestToken, isPrototype, sessionStorage);
+    const saveTask = saveQueueRef.current.catch(() => {}).then(async () => {
+      if (!isCurrentSession()) return;
+      const response = await fetch(`${API_BASE}/user/me`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${requestToken}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...nextOverrides, revision: revisionRef.current }),
       });
+      if (!isCurrentSession()) return;
+      if (response.status === 409) {
+        setSaveConflict(true);
+        return;
+      }
+      if (!response.ok) throw new Error("Profile save failed.");
+      const payload = await response.json();
+      if (isCurrentSession()) revisionRef.current = payload.user.revision;
+    });
+    saveQueueRef.current = saveTask;
+    try {
+      await saveTask;
     } catch (error) {
       console.error("Profile sync failed.", error);
     }
@@ -499,6 +507,7 @@ export default function App() {
   // Session and prototype transitions reset or hydrate all account-scoped state.
   function handleAuthSuccess(user, authToken, isNewAccount = false) {
     sessionGeneration.invalidate();
+    setSaveConflict(false);
     enterAuthenticatedSession(sessionStorage, authToken);
     setToken(authToken);
     setIsPrototype(false);
@@ -511,6 +520,7 @@ export default function App() {
   }
 
   function resetUserState() {
+    revisionRef.current = 0;
     sessionStorage.removeItem("steady-prototype");
     sessionStorage.removeItem("steady-prototype-group");
     sessionStorage.removeItem("steady-prototype-tour-complete");
@@ -533,6 +543,7 @@ export default function App() {
 
   function startPrototype(group) {
     sessionGeneration.invalidate();
+    setSaveConflict(false);
     const data = buildPrototypeData(group);
     resetUserState();
     enterPrototypeSession(sessionStorage, group);
@@ -577,6 +588,7 @@ export default function App() {
   function confirmLogout() {
     setLogoutPromptOpen(false);
     sessionGeneration.invalidate();
+    setSaveConflict(false);
     sessionStorage.removeItem("steady-token");
     setToken("");
     resetUserState();
@@ -703,6 +715,17 @@ export default function App() {
             </span>
             <button type="button" onClick={handleLogout}>
               Exit
+            </button>
+          </div>
+        )}
+        {saveConflict && (
+          <div className="saveConflictBanner" role="alert">
+            <p>
+              This account changed in another tab. Reload the latest saved data
+              before continuing; unsaved changes here will be lost.
+            </p>
+            <button type="button" onClick={() => window.location.reload()}>
+              Reload latest data
             </button>
           </div>
         )}

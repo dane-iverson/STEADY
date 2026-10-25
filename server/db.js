@@ -58,6 +58,7 @@ export function createUserDocument(data) {
     passwordHash: data.passwordHash || "",
     accountType: data.accountType || "patient",
     onboardingComplete: data.onboardingComplete ?? true,
+    revision: data.revision ?? 0,
     ageGroup: data.ageGroup || "teen",
     readings: Array.isArray(data.readings) ? data.readings : [],
     reminders: Array.isArray(data.reminders) ? data.reminders : [],
