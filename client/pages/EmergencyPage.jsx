@@ -23,9 +23,7 @@ export function EmergencyPage({ profile, onBack }) {
       </div>
 
       <Card className="emergencyLowGuidance">
-        <div className="cardEyebrow" style={{ color: "#3E7CB8" }}>
-          Low blood glucose (hypo)
-        </div>
+        <div className="cardEyebrow">Low blood glucose (hypo)</div>
         <ol className="stepsList">
           <li>Stop what you're doing and sit down if you can.</li>
           <li>
@@ -40,10 +38,8 @@ export function EmergencyPage({ profile, onBack }) {
         </ol>
       </Card>
 
-      <Card>
-        <div className="cardEyebrow" style={{ color: "#C1622B" }}>
-          High blood glucose (hyper)
-        </div>
+      <Card className="emergencyHighGuidance">
+        <div className="cardEyebrow">High blood glucose (hyper)</div>
         <ol className="stepsList">
           <li>Check your glucose to confirm it's high.</li>
           <li>

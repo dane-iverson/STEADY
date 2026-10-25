@@ -612,7 +612,9 @@ export default function App() {
   };
 
   return (
-    <div className={`appOuter theme-${ageGroup}`}>
+    <div
+      className={`appOuter ${isCaregiver ? "caregiverApp" : "patientApp"} theme-${ageGroup}`}
+    >
       <div className="phone">
         {isPrototype && (
           <div className="prototypeBanner" role="status">

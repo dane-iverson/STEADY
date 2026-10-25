@@ -1,0 +1,382 @@
+.appOuter.patientApp {
+  --surface: #ffffff;
+  --surface-muted: #f6f8f7;
+  --ink: #26332d;
+  --ink-soft: #56645d;
+  --border: #d9e1dc;
+  --input-border: #7b8982;
+  --focus: #175d9c;
+  --status-target: #205c3b;
+  --status-target-bg: #edf7ef;
+  --status-low: #175d9c;
+  --status-low-bg: #edf5fc;
+  --status-high: #854400;
+  --status-high-bg: #fff4df;
+  --status-critical: #a12632;
+  --status-critical-bg: #fff0f1;
+  --target: #205c3b;
+  --low: #175d9c;
+  --high: #854400;
+}
+
+.appOuter.patientApp.theme-child {
+  --brand: #aa452b;
+  --brand-dark: #84341f;
+  --brand-tint: #fff0e9;
+  --accent: #aa452b;
+  --surface-muted: #fff8f3;
+}
+
+.appOuter.patientApp.theme-teen {
+  --brand: #16657b;
+  --brand-dark: #104c5e;
+  --brand-tint: #e8f4f7;
+  --accent: #16657b;
+}
+
+.appOuter.patientApp.theme-young_adult {
+  --brand: #276749;
+  --brand-dark: #205339;
+  --brand-tint: #eaf2ed;
+  --accent: #276749;
+}
+
+.appOuter.patientApp .phoneBody {
+  background: var(--surface-muted);
+}
+
+.appOuter.patientApp .topbar {
+  background: var(--surface);
+}
+
+.appOuter.patientApp .topbarBrandMark {
+  box-shadow: none;
+}
+
+.appOuter.patientApp .screenTitle,
+.patientApp .topbarRow h1 {
+  color: var(--ink);
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+.appOuter.patientApp .screenTitle {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.patientApp .screenSub {
+  font-size: 14px;
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.patientApp .sectionKicker,
+.patientApp .topbarEyebrow {
+  font-size: 11px;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
+.patientApp .sectionHeadingMeta,
+.patientApp .readingStamp,
+.patientApp .dateFieldHint,
+.patientApp .inputHint,
+.patientApp .tileDesc,
+.patientApp .fineprint {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.appOuter.patientApp .card,
+.appOuter.patientApp .tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.patientApp .tile::before,
+.patientApp .tile::after {
+  display: none;
+}
+
+.appOuter.patientApp .tile {
+  justify-content: flex-start;
+  min-height: 128px;
+  padding: 16px;
+  gap: 8px;
+}
+
+.patientApp .tile svg {
+  color: var(--brand);
+}
+
+.patientApp .tile-insulinCalculator svg {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.patientApp .tile-emergency svg {
+  color: var(--status-critical);
+}
+
+.patientApp .tileLabel {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.patientApp .tile:hover,
+.patientApp .dashboardLinkCard:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  box-shadow: none;
+  transform: none;
+}
+
+.patientApp .clinicalNumber,
+.patientApp .bigNumber {
+  color: var(--ink);
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.patientApp .clinicalNumber {
+  font-size: 36px;
+}
+
+.patientApp .cardMainLine {
+  font-weight: 600;
+}
+
+.appOuter.patientApp .gettingStartedCard {
+  padding: 16px 0;
+  margin-bottom: 20px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+.patientApp .gettingStartedActions {
+  gap: 6px;
+}
+
+.patientApp .gettingStartedAction {
+  font-size: 13px;
+}
+
+.appOuter.patientApp .btnPrimary,
+.patientApp .btnGhost,
+.patientApp .btnDanger,
+.patientApp .chip,
+.patientApp .iconBtn {
+  min-height: 44px;
+  border-radius: 6px;
+  box-shadow: none;
+  letter-spacing: 0;
+}
+
+.appOuter.patientApp .btnPrimary {
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.patientApp .btnPrimary:hover:not(:disabled) {
+  background: var(--brand-dark);
+  box-shadow: none;
+  transform: none;
+}
+
+.patientApp .btnGhost {
+  background: var(--surface);
+  color: var(--brand-dark);
+}
+
+.patientApp .btnDanger,
+.patientApp .miniAction.danger {
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+}
+
+.patientApp .iconBtn {
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+}
+
+.patientApp .textInput {
+  min-height: 44px;
+  border-color: var(--input-border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 16px;
+}
+
+.patientApp .textInput::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+.patientApp .textInput:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-color: var(--focus);
+  box-shadow: none;
+}
+
+.patientApp button:focus-visible,
+.patientApp a:focus-visible,
+.patientApp summary:focus-visible,
+.patientApp [role="button"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.patientApp .chip {
+  border-color: var(--input-border);
+  font-size: 13px;
+}
+
+.patientApp .chipActive {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+  color: #ffffff;
+}
+
+.patientApp .toggle {
+  background: var(--input-border);
+}
+
+.patientApp .toggleOn {
+  background: var(--brand);
+}
+
+.patientApp .profileDetails,
+.patientApp .readingOptions,
+.patientApp .reminderSummary,
+.patientApp .calculatorSettings,
+.patientApp .calculatorInputs,
+.patientApp .trendsControlGroup,
+.patientApp .caregiverConnectionPanel {
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.patientApp .profileSummary,
+.patientApp .educationSectionSummary {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.patientApp .calculatorGuidance,
+.patientApp .calculatorResultWarning {
+  color: var(--status-high);
+  background: var(--status-high-bg);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.appOuter.patientApp .calculatorStop {
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical);
+}
+
+.patientApp .calculatorStop h3 {
+  color: var(--status-critical);
+}
+
+.patientApp .emergencyLowGuidance .cardEyebrow {
+  color: var(--status-low);
+}
+
+.patientApp .emergencyHighGuidance .cardEyebrow {
+  color: var(--status-high);
+}
+
+.patientApp .stepsList {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.patientApp .reminderState,
+.patientApp .statusTag {
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.patientApp .statusTag-target,
+.patientApp .reminderState-completed,
+.patientApp .calculatorStatus-ok {
+  color: var(--status-target);
+  background: var(--status-target-bg);
+}
+
+.patientApp .statusTag-low {
+  color: var(--status-low);
+  background: var(--status-low-bg);
+}
+
+.patientApp .statusTag-high,
+.patientApp .reminderState-overdue,
+.patientApp .calculatorStatus-warn {
+  color: var(--status-high);
+  background: var(--status-high-bg);
+}
+
+.patientApp .statusTag-very-low,
+.patientApp .statusTag-very-high {
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+}
+
+.patientApp .navbar {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.patientApp .navItem {
+  min-height: 48px;
+  color: var(--ink-soft);
+}
+
+.patientApp .navItem span {
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.patientApp .navItemActive {
+  color: var(--brand-dark);
+  background: var(--brand-tint);
+}
+
+.patientApp .navItemActive span {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .patientApp .reminderCardTop {
+    flex-wrap: wrap;
+  }
+
+  .patientApp .reminderCardTop > .rowGap {
+    margin-left: auto;
+  }
+
+  .patientApp .topbarIdentity {
+    min-width: 0;
+  }
+
+  .patientApp .topbarRow h1 {
+    font-size: 16px;
+  }
+}
