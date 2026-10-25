@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Card } from "../components/Card";
 import { GettingStarted } from "../components/GettingStarted";
+import { statusOf } from "../utils/diabetes";
 
 const PREVIEW_COUNT = 5;
 const PAGE_SIZE = 10;
@@ -280,8 +281,8 @@ export function CaregiverInboxPage({
         <div className="sectionKicker">PATIENT PAIRING</div>
         <h3>Connect with a patient</h3>
         <p className="mutedSmall">
-          Both accounts must accept a request. Patients choose what health data
-          to share after pairing.
+          Both accounts must accept a request. Saved glucose readings appear
+          automatically when the patient enables glucose sharing.
         </p>
         <div className="caregiverInviteRow">
           <input
@@ -448,44 +449,95 @@ export function CaregiverInboxPage({
                 </span>
               </div>
               <div className="mutedSmall">
-                {item.senderName ? `${item.senderName} · ` : ""}Shared{" "}
+                {item.senderName ? `${item.senderName} · ` : ""}
+                {item.automatic ? "Recorded" : "Shared"}{" "}
                 {new Date(item.sharedAt).toLocaleString([], {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })}
               </div>
               <p className="caregiverSharedDetail">{item.detail}</p>
+              {item.automatic && (
+                <div className="mutedSmall">Automatically shared</div>
+              )}
+              {item.message && (
+                <div className="caregiverPatientMessage">
+                  <strong>Patient message</strong>
+                  <p>{item.message}</p>
+                </div>
+              )}
               {item.data && (
                 <div className="caregiverDataGrid">
-                  {item.type === "glucose" && (
-                    <>
-                      <div>
-                        <span>Reading</span>
-                        <strong>
-                          {item.data.value ?? "--"} {item.data.unit}
-                        </strong>
-                      </div>
-                      <div>
-                        <span>Context</span>
-                        <strong>{item.data.context}</strong>
-                      </div>
-                      <div>
-                        <span>Status</span>
-                        <strong>{item.data.status || "Not classified"}</strong>
-                      </div>
-                      <div>
-                        <span>Recorded</span>
-                        <strong>
-                          {item.data.readingAt
-                            ? new Date(item.data.readingAt).toLocaleString([], {
-                                dateStyle: "medium",
-                                timeStyle: "short",
-                              })
-                            : "Not provided"}
-                        </strong>
-                      </div>
-                    </>
-                  )}
+                  {item.type === "glucose" &&
+                    item.data.selection === "range" && (
+                      <details className="caregiverGlucoseRange">
+                        <summary>
+                          {item.data.readings?.length || 0} reading
+                          {item.data.readings?.length === 1 ? "" : "s"} ·{" "}
+                          {item.data.rangeLabel}
+                        </summary>
+                        <div className="caregiverGlucoseReadingList">
+                          {(item.data.readings || []).map((reading, index) => (
+                            <div
+                              className="caregiverGlucoseReading"
+                              key={`${reading.readingAt}-${index}`}
+                            >
+                              <time dateTime={reading.readingAt}>
+                                {new Date(reading.readingAt).toLocaleString(
+                                  [],
+                                  { dateStyle: "medium", timeStyle: "short" },
+                                )}
+                              </time>
+                              <strong>
+                                {Number(reading.value).toFixed(1)} mmol/L
+                              </strong>
+                              <span>{reading.context}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  {item.type === "glucose" &&
+                    item.data.selection !== "range" && (
+                      <>
+                        <div>
+                          <span>Reading</span>
+                          <strong>
+                            {item.data.value ?? "--"} {item.data.unit}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Context</span>
+                          <strong>{item.data.context}</strong>
+                        </div>
+                        <div>
+                          <span>Status</span>
+                          <strong>
+                            {item.automatic
+                              ? statusOf(
+                                  item.data.value,
+                                  item.data.context,
+                                  item.data.glucoseRanges,
+                                ).label
+                              : item.data.status || "Not classified"}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Recorded</span>
+                          <strong>
+                            {item.data.readingAt
+                              ? new Date(item.data.readingAt).toLocaleString(
+                                  [],
+                                  {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  },
+                                )
+                              : "Not provided"}
+                          </strong>
+                        </div>
+                      </>
+                    )}
                   {item.type === "trends" && (
                     <>
                       <div>

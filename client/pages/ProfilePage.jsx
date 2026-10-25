@@ -15,6 +15,7 @@ import {
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
 import { DateOfBirthPicker } from "../components/DateOfBirthPicker";
+import { glucoseRangeShare } from "../utils/glucoseSharing";
 import {
   DEFAULT_GLUCOSE_RANGE_LIMITS,
   getReadingDateRange,
@@ -110,6 +111,12 @@ export function ProfilePage({
   });
   const [caregiverEmail, setCaregiverEmail] = useState("");
   const [shareType, setShareType] = useState("glucose");
+  const [shareReadingId, setShareReadingId] = useState("");
+  const [glucoseSelection, setGlucoseSelection] = useState("single");
+  const [glucoseShareRange, setGlucoseShareRange] = useState("Last 7 days");
+  const [glucoseShareStart, setGlucoseShareStart] = useState("");
+  const [glucoseShareEnd, setGlucoseShareEnd] = useState("");
+  const [readingMessage, setReadingMessage] = useState("");
   const [trendShareRange, setTrendShareRange] = useState("Last 7 days");
   const [trendShareStart, setTrendShareStart] = useState("");
   const [trendShareEnd, setTrendShareEnd] = useState("");
@@ -201,8 +208,21 @@ export function ProfilePage({
     reminderShareRange === "Custom"
       ? `${reminderShareStart} to ${reminderShareEnd}`
       : reminderShareRange;
+  const selectedReading = shareReadingId
+    ? readings.find((reading) => String(reading.id) === shareReadingId)
+    : readings[readings.length - 1];
+  const glucoseRange = glucoseRangeShare(
+    readings,
+    glucoseShareRange,
+    glucoseShareStart,
+    glucoseShareEnd,
+  );
   const shareBlocked =
-    shareType === "reminders" && sharedCompletions.length === 0;
+    (shareType === "reminders" && sharedCompletions.length === 0) ||
+    (shareType === "glucose" &&
+      (glucoseSelection === "range"
+        ? Boolean(glucoseRange.error)
+        : !selectedReading));
 
   async function requestCaregiverPairing() {
     const email = caregiverEmail.trim().toLowerCase();
@@ -255,9 +275,18 @@ export function ProfilePage({
   }
 
   // Build the selected report from current profile data, then deliver it to caregivers.
-  function sendSharedItem() {
-    if (!caregivers.length) return;
-    const latestReading = readings[readings.length - 1];
+  async function sendSharedItem() {
+    if (!caregivers.length || shareBlocked) return;
+    const recipients = caregivers.filter(
+      (caregiver) => caregiver.permissions?.[shareType] !== false,
+    );
+    if (!recipients.length) {
+      setSharingMessage(
+        "No connected caregiver has permission for this update.",
+      );
+      return;
+    }
+    const latestReading = selectedReading;
     const trendDateRange =
       trendShareRange === "All recordings"
         ? null
@@ -268,9 +297,12 @@ export function ProfilePage({
     const trendDailyPoints = buildSharedTrendPoints(trendReadings, "daily");
     const trendWeeklyPoints = buildSharedTrendPoints(trendReadings, "weekly");
     const itemDetails = {
-      glucose: latestReading
-        ? `Latest reading: ${Number(latestReading.v).toFixed(1)} mmol/L (${latestReading.context || "Random"})`
-        : "No glucose readings saved yet.",
+      glucose:
+        glucoseSelection === "range"
+          ? `${glucoseRange.readings.length} glucose reading${glucoseRange.readings.length === 1 ? "" : "s"} for ${glucoseRange.rangeLabel}.`
+          : latestReading
+            ? `Reading: ${Number(latestReading.v).toFixed(1)} mmol/L (${latestReading.context || "Random"})`
+            : "No glucose readings saved yet.",
       trends: `Trend report: ${trendReadings.length} readings for ${trendShareRange === "Custom" ? `${trendShareStart} to ${trendShareEnd}` : trendShareRange}.`,
       reminders: `${sharedCompletions.length} completed reminder${sharedCompletions.length === 1 ? "" : "s"} for ${reminderRangeLabel}.`,
       hba1c: profile.hba1c
@@ -285,7 +317,8 @@ export function ProfilePage({
         )
       : null;
     const labels = {
-      glucose: "Glucose reading",
+      glucose:
+        glucoseSelection === "range" ? "Glucose readings" : "Glucose reading",
       trends: "Trend summary",
       reminders: "Reminder activity",
       hba1c: "HbA1c result",
@@ -295,18 +328,27 @@ export function ProfilePage({
       type: shareType,
       title: labels[shareType],
       detail: itemDetails[shareType],
+      message: shareType === "glucose" ? readingMessage.trim() : "",
       sharedAt: new Date().toISOString(),
       viewedAt: null,
       senderName: `${profile.name || ""} ${profile.surname || ""}`.trim(),
       data:
         shareType === "glucose"
-          ? {
-              value: latestReading?.v ?? null,
-              unit: "mmol/L",
-              context: latestReading?.context || "Random",
-              readingAt: latestReading?.date || null,
-              status: latestStatus?.label || null,
-            }
+          ? glucoseSelection === "range"
+            ? {
+                selection: "range",
+                rangeLabel: glucoseRange.rangeLabel,
+                unit: glucoseRange.unit,
+                readings: glucoseRange.readings,
+              }
+            : {
+                readingId: latestReading?.id,
+                value: latestReading?.v ?? null,
+                unit: "mmol/L",
+                context: latestReading?.context || "Random",
+                readingAt: latestReading?.date || null,
+                status: latestStatus?.label || null,
+              }
           : shareType === "trends"
             ? {
                 readingCount: trendReadings.length,
@@ -347,21 +389,25 @@ export function ProfilePage({
                   testedAt: profile.hba1cDate || null,
                 },
     };
-    setSharing({
-      ...sharing,
-      on: true,
-      sharedItems: [sharedItem, ...sharedItems],
-    });
     setSharingBusy(true);
     setSharingMessage("");
-    Promise.all(
-      caregivers.map((caregiver) =>
-        onSendSharedItem?.(sharedItem, caregiver.email),
-      ),
-    )
-      .then(() => setSharingMessage("Update sent to the caregiver inbox."))
-      .catch((error) => setSharingMessage(error.message))
-      .finally(() => setSharingBusy(false));
+    try {
+      await Promise.all(
+        recipients.map((caregiver) =>
+          onSendSharedItem(sharedItem, caregiver.email),
+        ),
+      );
+      setSharing({
+        ...sharing,
+        sharedItems: [sharedItem, ...sharedItems].slice(0, 500),
+      });
+      setReadingMessage("");
+      setSharingMessage("Update sent to the caregiver inbox.");
+    } catch (error) {
+      setSharingMessage(error.message);
+    } finally {
+      setSharingBusy(false);
+    }
   }
 
   return (
@@ -967,8 +1013,8 @@ export function ProfilePage({
                   Share with a caregiver
                 </div>
                 <div className="mutedSmall">
-                  Connect a caregiver account and send selected information
-                  through Steady.
+                  Paired caregivers can see saved glucose readings automatically
+                  while blood glucose sharing is enabled.
                 </div>
               </div>
               <button
@@ -984,8 +1030,9 @@ export function ProfilePage({
             <div className="sectionKicker">PAIRING</div>
             <h3>Request a caregiver connection</h3>
             <p className="mutedSmall">
-              Both accounts must accept. Health information stays private until
-              you enable sharing and select what to send.
+              Both accounts must accept. Enabling blood glucose sharing makes
+              your saved readings visible, including new readings as you log
+              them.
             </p>
             <div className="caregiverInviteRow">
               <input
@@ -1152,17 +1199,10 @@ export function ProfilePage({
                   className="textInput"
                   value={shareType}
                   onChange={(event) => setShareType(event.target.value)}
-                  disabled={
-                    !caregivers.length ||
-                    !sharing.perms[shareType] ||
-                    sharingBusy ||
-                    (shareType === "trends" &&
-                      trendShareRange === "Custom" &&
-                      (!trendShareStart || !trendShareEnd))
-                  }
+                  disabled={!caregivers.length || sharingBusy}
                 >
                   <option value="glucose" disabled={!sharing.perms.glucose}>
-                    Latest glucose reading
+                    Glucose reading with optional message
                   </option>
                   <option value="trends" disabled={!sharing.perms.trends}>
                     Trend summary
@@ -1174,6 +1214,148 @@ export function ProfilePage({
                     HbA1c result
                   </option>
                 </select>
+                {shareType === "glucose" && (
+                  <div className="trendShareOptions">
+                    <div
+                      className="chipRow"
+                      role="group"
+                      aria-label="Glucose selection"
+                    >
+                      {[
+                        ["single", "Single reading"],
+                        ["range", "Date range"],
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={
+                            "chip" +
+                            (glucoseSelection === value ? " chipActive" : "")
+                          }
+                          aria-pressed={glucoseSelection === value}
+                          onClick={() => setGlucoseSelection(value)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {glucoseSelection === "single" ? (
+                      <>
+                        <label
+                          className="fieldLabel"
+                          htmlFor="share-glucose-reading"
+                        >
+                          Reading
+                        </label>
+                        <select
+                          id="share-glucose-reading"
+                          className="textInput"
+                          value={shareReadingId}
+                          onChange={(event) =>
+                            setShareReadingId(event.target.value)
+                          }
+                        >
+                          <option value="">Latest saved reading</option>
+                          {[...readings].reverse().map((reading) => (
+                            <option key={reading.id} value={String(reading.id)}>
+                              {Number(reading.v).toFixed(1)} mmol/L ·{" "}
+                              {new Date(reading.date).toLocaleString()}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    ) : (
+                      <>
+                        <label
+                          className="fieldLabel"
+                          htmlFor="share-glucose-range"
+                        >
+                          Period
+                        </label>
+                        <select
+                          id="share-glucose-range"
+                          className="textInput"
+                          value={glucoseShareRange}
+                          onChange={(event) =>
+                            setGlucoseShareRange(event.target.value)
+                          }
+                        >
+                          {["Today", ...TREND_SHARE_RANGES, "Custom"].map(
+                            (option) => (
+                              <option key={option} value={option}>
+                                {option === "Custom" ? "Custom dates" : option}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                        {glucoseShareRange === "Custom" && (
+                          <div className="trendDateGrid">
+                            <div>
+                              <label
+                                className="fieldLabel"
+                                htmlFor="share-glucose-start"
+                              >
+                                From
+                              </label>
+                              <input
+                                id="share-glucose-start"
+                                className="textInput"
+                                type="date"
+                                value={glucoseShareStart}
+                                onChange={(event) =>
+                                  setGlucoseShareStart(event.target.value)
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label
+                                className="fieldLabel"
+                                htmlFor="share-glucose-end"
+                              >
+                                To
+                              </label>
+                              <input
+                                id="share-glucose-end"
+                                className="textInput"
+                                type="date"
+                                value={glucoseShareEnd}
+                                onChange={(event) =>
+                                  setGlucoseShareEnd(event.target.value)
+                                }
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div className="dateFieldHint" role="status">
+                          {glucoseRange.error ||
+                            `${glucoseRange.readings.length} reading${glucoseRange.readings.length === 1 ? "" : "s"} will be shared.`}
+                        </div>
+                      </>
+                    )}
+                    <label
+                      className="fieldLabel"
+                      htmlFor="share-glucose-message"
+                    >
+                      Message (optional)
+                    </label>
+                    <textarea
+                      id="share-glucose-message"
+                      className="textInput reminderNotesInput"
+                      value={readingMessage}
+                      onChange={(event) =>
+                        setReadingMessage(event.target.value)
+                      }
+                      maxLength={1000}
+                      rows={3}
+                      placeholder="Add context about the selected readings, such as food or activity."
+                    />
+                    <p className="dateFieldHint">
+                      Readings already appear automatically while glucose
+                      sharing is on. Sending here adds a separate update for
+                      your caregiver.
+                    </p>
+                  </div>
+                )}
                 {shareType === "trends" && (
                   <div className="trendShareOptions">
                     <label className="fieldLabel" htmlFor="share-trend-range">
@@ -1410,6 +1592,11 @@ export function ProfilePage({
                         </span>
                       </div>
                       <p>{item.detail}</p>
+                      {item.message && (
+                        <p className="caregiverPatientMessage">
+                          {item.message}
+                        </p>
+                      )}
                     </div>
                   ))
                 ) : (

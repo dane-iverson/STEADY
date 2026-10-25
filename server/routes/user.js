@@ -247,6 +247,72 @@ function requireAuth(req, res, next) {
 
 router.use(requireAuth);
 
+async function caregiverGlucoseFeed(caregiver) {
+  const caregiverId = String(caregiver._id);
+  const connections = databaseConfigured()
+    ? await Connection.find({
+        status: "accepted",
+        $or: [{ requesterId: caregiverId }, { recipientId: caregiverId }],
+      }).lean()
+    : memoryConnections.filter(
+        (entry) =>
+          entry.status === "accepted" &&
+          [entry.requesterId, entry.recipientId].includes(caregiverId),
+      );
+  const items = [];
+  for (const connection of connections) {
+    const patientId =
+      String(connection.requesterId) === caregiverId
+        ? connection.recipientId
+        : connection.requesterId;
+    const patient = await findUserById(patientId);
+    const permission = patient?.sharing?.caregivers?.find(
+      (entry) =>
+        entry.email?.trim().toLowerCase() ===
+        caregiver.email.trim().toLowerCase(),
+    );
+    if (
+      !patient ||
+      patient.accountType !== "patient" ||
+      !patient.sharing?.on ||
+      patient.sharing?.perms?.glucose !== true ||
+      !permission ||
+      permission.permissions?.glucose === false
+    )
+      continue;
+    for (const reading of patient.readings || []) {
+      const value = Number(reading.v);
+      if (
+        reading.id == null ||
+        !Number.isFinite(value) ||
+        value <= 0 ||
+        !reading.date ||
+        Number.isNaN(new Date(reading.date).getTime())
+      )
+        continue;
+      items.push({
+        id: `auto-glucose-${patient._id}-${reading.id}`,
+        type: "glucose",
+        automatic: true,
+        title: "Glucose reading",
+        detail: `${value.toFixed(1)} mmol/L (${reading.context || "Random"})`,
+        sharedAt: reading.date,
+        senderId: String(patient._id),
+        senderName: patient.name || "A patient",
+        data: {
+          readingId: reading.id,
+          value,
+          unit: "mmol/L",
+          context: reading.context || "Random",
+          readingAt: reading.date,
+          glucoseRanges: patient.profile?.glucoseRanges,
+        },
+      });
+    }
+  }
+  return items;
+}
+
 // GET /api/user/me - returns the signed-in user's saved data.
 router.get("/me", async (req, res) => {
   try {
@@ -262,7 +328,19 @@ router.get("/me", async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    res.json({ user: sanitizeUser(user) });
+    const responseUser = sanitizeUser(user);
+    if (isCaregiverAccount(user)) {
+      responseUser.sharedItems = [
+        ...responseUser.sharedItems,
+        ...(await caregiverGlucoseFeed(user)),
+      ]
+        .sort(
+          (first, second) =>
+            new Date(second.sharedAt) - new Date(first.sharedAt),
+        )
+        .slice(0, CAREGIVER_INBOX_LIMIT);
+    }
+    res.json({ user: responseUser });
   } catch {
     res.status(500).json({ message: "Could not load profile." });
   }
@@ -607,12 +685,37 @@ router.post("/share", shareLimiter, async (req, res) => {
       !SHARE_TYPES.has(item.type) ||
       !validString(item.title, 100) ||
       !validString(item.detail, 2000) ||
+      (item.message !== undefined && !validString(item.message, 1000)) ||
       (item.data !== undefined &&
         (!isPlainObject(item.data) || JSON.stringify(item.data).length > 8192))
     ) {
       return res
         .status(400)
         .json({ message: "Caregiver and shared item are required." });
+    }
+
+    if (item.type === "glucose" && item.data?.selection === "range") {
+      const data = item.data;
+      if (
+        !validString(data.rangeLabel, 100) ||
+        !Array.isArray(data.readings) ||
+        data.readings.length < 1 ||
+        data.readings.length > 50 ||
+        !data.readings.every(
+          (reading) =>
+            isPlainObject(reading) &&
+            typeof reading.value === "number" &&
+            Number.isFinite(reading.value) &&
+            reading.value > 0 &&
+            validString(reading.readingAt, 40) &&
+            Number.isFinite(new Date(reading.readingAt).getTime()) &&
+            validString(reading.context, 100),
+        )
+      ) {
+        return res.status(400).json({
+          message: "Select a valid range of 1 to 50 glucose readings.",
+        });
+      }
     }
 
     let patient;
@@ -655,6 +758,7 @@ router.post("/share", shareLimiter, async (req, res) => {
         type: item.type,
         title: item.title,
         detail: item.detail,
+        message: item.message?.trim() || "",
         sharedAt: new Date().toISOString(),
         viewedAt: null,
         senderId: String(patient._id),
@@ -715,6 +819,7 @@ router.post("/share", shareLimiter, async (req, res) => {
           type: item.type,
           title: item.title,
           detail: item.detail,
+          message: item.message?.trim() || "",
           sharedAt: new Date().toISOString(),
           viewedAt: null,
           senderId: String(patient._id),

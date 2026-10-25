@@ -194,6 +194,58 @@
   line-height: 1.5;
 }
 
+.caregiverPatientMessage {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--brand);
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.caregiverPatientMessage p {
+  margin: 4px 0 0;
+}
+
+.caregiverGlucoseRange {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.caregiverGlucoseRange summary {
+  padding: 10px 0;
+  color: var(--brand-dark);
+  font-weight: 600;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.caregiverGlucoseReadingList {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.caregiverGlucoseReading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.caregiverGlucoseReading time {
+  overflow-wrap: anywhere;
+}
+
+.caregiverGlucoseReading span {
+  grid-column: 1 / -1;
+  color: var(--ink-soft);
+}
+
 .caregiverEmptyCard {
   display: flex;
   flex-direction: column;
