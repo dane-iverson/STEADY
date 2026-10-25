@@ -24,6 +24,12 @@ import { DEFAULT_INSULIN_SETTINGS } from "./utils/insulin.js";
 import { buildPrototypeData } from "./data/prototypeData.js";
 import { createSessionGeneration } from "./utils/sessionGeneration.js";
 import {
+  enterAuthenticatedSession,
+  enterPrototypeSession,
+  hasActiveAuthSession,
+  resolveStoredSession,
+} from "./utils/sessionMode.js";
+import {
   analyticsConfigured,
   getAnalyticsConsent,
   initAnalytics,
@@ -123,17 +129,13 @@ function screenFromLocation() {
 
 export default function App() {
   const sessionGeneration = useRef(createSessionGeneration()).current;
-  const [token, setToken] = useState(
-    sessionStorage.getItem("steady-token") || "",
-  );
-  const [isPrototype, setIsPrototype] = useState(
-    sessionStorage.getItem("steady-prototype") === "true",
-  );
+  const [initialSession] = useState(() => resolveStoredSession(sessionStorage));
+  const [token, setToken] = useState(initialSession.token);
+  const [isPrototype, setIsPrototype] = useState(initialSession.isPrototype);
   const [screen, setScreenState] = useState(() => {
-    const storedToken = sessionStorage.getItem("steady-token");
-    const storedPrototype =
-      sessionStorage.getItem("steady-prototype") === "true";
-    return storedToken || storedPrototype ? screenFromLocation() : "welcome";
+    return initialSession.token || initialSession.isPrototype
+      ? screenFromLocation()
+      : "welcome";
   });
   const [ageGroup, setAgeGroup] = useState("teen");
   const [name, setName] = useState("");
@@ -234,14 +236,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
     let active = true;
     const capturedGeneration = sessionGeneration.capture();
     const controller = new AbortController();
     const isCurrentSession = () =>
       active &&
       sessionGeneration.isCurrent(capturedGeneration) &&
-      sessionStorage.getItem("steady-token") === token;
+      hasActiveAuthSession(token, isPrototype, sessionStorage);
 
     async function loadProfile() {
       try {
@@ -294,10 +296,10 @@ export default function App() {
       active = false;
       controller.abort();
     };
-  }, [token]);
+  }, [token, isPrototype]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
     let active = true;
     const capturedGeneration = sessionGeneration.capture();
     let controller;
@@ -312,7 +314,7 @@ export default function App() {
         if (
           !active ||
           !sessionGeneration.isCurrent(capturedGeneration) ||
-          sessionStorage.getItem("steady-token") !== token
+          !hasActiveAuthSession(token, isPrototype, sessionStorage)
         )
           return;
         if (response.ok) {
@@ -320,7 +322,7 @@ export default function App() {
           if (
             active &&
             sessionGeneration.isCurrent(capturedGeneration) &&
-            sessionStorage.getItem("steady-token") === token
+            hasActiveAuthSession(token, isPrototype, sessionStorage)
           )
             setConnectionRequests(connections);
         }
@@ -334,7 +336,7 @@ export default function App() {
       window.clearInterval(interval);
       controller?.abort();
     };
-  }, [token]);
+  }, [token, isPrototype]);
 
   useEffect(() => {
     if (accountType === "caregiver" && screen !== "caregiverInbox") {
@@ -361,7 +363,7 @@ export default function App() {
 
   // Persist a complete snapshot so each update uses the same API payload shape.
   async function persistUserState(nextOverrides = {}) {
-    if (!token || isPrototype) return;
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
 
     const payload = {
       ageGroup,
@@ -391,12 +393,12 @@ export default function App() {
   }
 
   async function refreshUserState() {
-    if (!token) return;
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
     const requestToken = token;
     const capturedGeneration = sessionGeneration.capture();
     const isCurrentSession = () =>
       sessionGeneration.isCurrent(capturedGeneration) &&
-      sessionStorage.getItem("steady-token") === requestToken;
+      hasActiveAuthSession(requestToken, isPrototype, sessionStorage);
     const response = await fetch(`${API_BASE}/user/me`, {
       headers: { Authorization: `Bearer ${requestToken}` },
     });
@@ -416,6 +418,9 @@ export default function App() {
   }
 
   async function requestConnection(email) {
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) {
+      throw new Error("You need an active account to manage connections.");
+    }
     const response = await fetch(`${API_BASE}/user/connections`, {
       method: "POST",
       headers: {
@@ -432,6 +437,9 @@ export default function App() {
   }
 
   async function respondToConnection(connectionId, decision) {
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) {
+      throw new Error("You need an active account to manage connections.");
+    }
     const response = await fetch(
       `${API_BASE}/user/connections/${connectionId}`,
       {
@@ -452,6 +460,9 @@ export default function App() {
   }
 
   async function revokeConnection(connectionId) {
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) {
+      throw new Error("You need an active account to manage connections.");
+    }
     const response = await fetch(
       `${API_BASE}/user/connections/${connectionId}`,
       {
@@ -467,7 +478,9 @@ export default function App() {
 
   // API actions used by the profile and caregiver inbox screens.
   async function sendSharedItemToCaregiver(item, caregiverEmail) {
-    if (!token) throw new Error("You need to be signed in to share updates.");
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) {
+      throw new Error("You need to be signed in to share updates.");
+    }
     const response = await fetch(`${API_BASE}/user/share`, {
       method: "POST",
       headers: {
@@ -486,8 +499,9 @@ export default function App() {
   // Session and prototype transitions reset or hydrate all account-scoped state.
   function handleAuthSuccess(user, authToken, isNewAccount = false) {
     sessionGeneration.invalidate();
-    sessionStorage.setItem("steady-token", authToken);
+    enterAuthenticatedSession(sessionStorage, authToken);
     setToken(authToken);
+    setIsPrototype(false);
     hydrateFromUser(user);
     setTourStage(isNewAccount ? "prompt" : null);
     setScreen(
@@ -521,9 +535,8 @@ export default function App() {
     sessionGeneration.invalidate();
     const data = buildPrototypeData(group);
     resetUserState();
-    sessionStorage.setItem("steady-prototype", "true");
-    sessionStorage.setItem("steady-prototype-group", group);
-    sessionStorage.removeItem("steady-prototype-tour-complete");
+    enterPrototypeSession(sessionStorage, group);
+    setToken("");
     setIsPrototype(true);
     setOnboardingComplete(false);
     setTourStage("prompt");
