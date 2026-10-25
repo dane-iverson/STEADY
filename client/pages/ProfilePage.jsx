@@ -16,10 +16,10 @@ import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
 import { DateOfBirthPicker } from "../components/DateOfBirthPicker";
 import { glucoseRangeShare } from "../utils/glucoseSharing";
+import { selectTrendShare } from "../utils/trendSharing";
 import {
   DEFAULT_GLUCOSE_RANGE_LIMITS,
   getReadingDateRange,
-  readingsForDateRange,
   statusOf,
 } from "../utils/diabetes";
 import {
@@ -217,7 +217,14 @@ export function ProfilePage({
     glucoseShareStart,
     glucoseShareEnd,
   );
+  const trendSelection = selectTrendShare(
+    readings,
+    trendShareRange,
+    trendShareStart,
+    trendShareEnd,
+  );
   const shareBlocked =
+    (shareType === "trends" && Boolean(trendSelection.error)) ||
     (shareType === "reminders" && sharedCompletions.length === 0) ||
     (shareType === "glucose" &&
       (glucoseSelection === "range"
@@ -276,6 +283,10 @@ export function ProfilePage({
 
   // Build the selected report from current profile data, then deliver it to caregivers.
   async function sendSharedItem() {
+    if (shareType === "trends" && trendSelection.error) {
+      setSharingMessage(trendSelection.error);
+      return;
+    }
     if (!caregivers.length || shareBlocked) return;
     const recipients = caregivers.filter(
       (caregiver) => caregiver.permissions?.[shareType] !== false,
@@ -287,13 +298,7 @@ export function ProfilePage({
       return;
     }
     const latestReading = selectedReading;
-    const trendDateRange =
-      trendShareRange === "All recordings"
-        ? null
-        : trendShareRange === "Custom"
-          ? getReadingDateRange(trendShareRange, trendShareStart, trendShareEnd)
-          : getReadingDateRange(trendShareRange);
-    const trendReadings = readingsForDateRange(readings, trendDateRange);
+    const trendReadings = trendSelection.readings;
     const trendDailyPoints = buildSharedTrendPoints(trendReadings, "daily");
     const trendWeeklyPoints = buildSharedTrendPoints(trendReadings, "weekly");
     const itemDetails = {
@@ -351,6 +356,7 @@ export function ProfilePage({
               }
           : shareType === "trends"
             ? {
+                period: trendSelection.period,
                 readingCount: trendReadings.length,
                 averageGlucose: trendReadings.length
                   ? trendReadings.reduce(
@@ -1414,6 +1420,14 @@ export function ProfilePage({
                         </div>
                       </div>
                     )}
+                    <div
+                      className="dateFieldHint"
+                      role="status"
+                      id="share-trend-validation"
+                    >
+                      {trendSelection.error ||
+                        `${trendSelection.readings.length} readings will be included in this trend report.`}
+                    </div>
                     <label className="fieldLabel" htmlFor="share-trend-mode">
                       Include graphs
                     </label>

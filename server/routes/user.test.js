@@ -5,6 +5,100 @@ import jwt from "jsonwebtoken";
 import userRoutes from "./user.js";
 import { memoryUsers, memoryConnections, createUserDocument } from "../db.js";
 import { jwtSecret, setDatabaseAvailable } from "../config.js";
+import { selectTrendShare } from "../../client/utils/trendSharing.js";
+
+test("trend shares reject invalid custom periods before delivery and preserve valid selection", async () => {
+  setDatabaseAvailable(false);
+  const patient = createUserDocument({
+    _id: "trend-patient",
+    name: "Patient",
+    email: "trend-patient@example.test",
+  });
+  const caregiver = createUserDocument({
+    _id: "trend-caregiver",
+    name: "Caregiver",
+    email: "trend-caregiver@example.test",
+    accountType: "caregiver",
+  });
+  patient.sharing = {
+    on: true,
+    perms: { trends: true },
+    caregivers: [{ email: caregiver.email, permissions: { trends: true } }],
+  };
+  const connection = {
+    id: "trend-pair",
+    pairKey: [patient._id, caregiver._id].sort().join(":"),
+    requesterId: patient._id,
+    recipientId: caregiver._id,
+    status: "accepted",
+  };
+  memoryUsers.push(patient, caregiver);
+  memoryConnections.push(connection);
+  const app = express();
+  app.use(express.json());
+  app.use("/user", userRoutes);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise((resolve) => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${server.address().port}/user`;
+  const authorization = `Bearer ${jwt.sign({ userId: patient._id }, jwtSecret())}`;
+  const send = (period, dailyPoints = []) =>
+    fetch(`${base}/share`, {
+      method: "POST",
+      headers: { authorization, "content-type": "application/json" },
+      body: JSON.stringify({
+        caregiverEmail: caregiver.email,
+        item: {
+          type: "trends",
+          title: "Trend summary",
+          detail: "Trend report",
+          data: { period, dailyPoints },
+        },
+      }),
+    });
+  try {
+    for (const period of [
+      undefined,
+      { range: "Unknown" },
+      ...[
+        ["", ""],
+        ["2026-10-01", ""],
+        ["", "2026-10-02"],
+        ["2026-10-03", "2026-10-01"],
+        ["bad", "2026-10-03"],
+        ["2026-02-31", "2026-03-10"],
+      ].map(([start, end]) => ({ range: "Custom", start, end })),
+    ]) {
+      assert.equal((await send(period)).status, 400);
+      assert.equal(caregiver.sharedItems.length, 0);
+    }
+    const report = selectTrendShare(
+      [
+        { id: 1, v: 5, date: "2026-10-01T12:00:00Z" },
+        { id: 2, v: 6, date: "2026-10-02T12:00:00Z" },
+        { id: 3, v: 7, date: "2026-10-03T12:00:00Z" },
+      ],
+      "Custom",
+      "2026-10-02",
+      "2026-10-02",
+    );
+    assert.equal(report.error, "");
+    const points = report.readings.map((reading) => ({
+      t: reading.date,
+      v: reading.v,
+    }));
+    assert.equal((await send(report.period, points)).status, 201);
+    assert.deepEqual(caregiver.sharedItems[0].data.dailyPoints, [
+      { t: "2026-10-02T12:00:00Z", v: 6 },
+    ]);
+    assert.equal((await send({ range: "All recordings" })).status, 201);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    memoryUsers.splice(memoryUsers.indexOf(patient), 1);
+    memoryUsers.splice(memoryUsers.indexOf(caregiver), 1);
+    memoryConnections.splice(memoryConnections.indexOf(connection), 1);
+  }
+});
 
 test("caregiver glucose feed respects current consent and pairing; messages are bounded", async () => {
   setDatabaseAvailable(false);

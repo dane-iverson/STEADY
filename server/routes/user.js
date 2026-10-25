@@ -694,6 +694,40 @@ router.post("/share", shareLimiter, async (req, res) => {
         .json({ message: "Caregiver and shared item are required." });
     }
 
+    if (item.type === "trends") {
+      const period = item.data?.period;
+      const ranges = [
+        "Last 7 days",
+        "Last 30 days",
+        "Last 3 months",
+        "Last 6 months",
+        "This year",
+        "All recordings",
+        "Custom",
+      ];
+      const validDate = (value) => {
+        if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+          return false;
+        const date = new Date(`${value}T00:00:00.000Z`);
+        return (
+          Number.isFinite(date.getTime()) &&
+          date.toISOString().slice(0, 10) === value
+        );
+      };
+      if (
+        !isPlainObject(period) ||
+        !ranges.includes(period.range) ||
+        (period.range === "Custom" &&
+          (!validDate(period.start) ||
+            !validDate(period.end) ||
+            period.start > period.end))
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Choose a valid date range for the trend report." });
+      }
+    }
+
     if (item.type === "glucose" && item.data?.selection === "range") {
       const data = item.data;
       if (
