@@ -94,7 +94,7 @@ export function DashboardPage({
       id: "emergency",
       label: "Emergency guidance",
       icon: ShieldAlert,
-      desc: "Always available offline",
+      desc: "Recognise lows, highs & when to get help",
     },
     {
       id: "profile",

@@ -1,0 +1,319 @@
+.emergencyScreen {
+  --emergency-danger: var(--status-critical, #a12632);
+  --emergency-danger-bg: var(--status-critical-bg, #fff0f1);
+}
+
+.emergencyIntro .screenSub {
+  max-width: 62ch;
+}
+
+.emergencyCritical {
+  padding: 20px;
+  border: 1px solid var(--emergency-danger);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--emergency-danger-bg);
+  color: var(--ink);
+}
+
+.emergencySectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.emergencySectionHeading > svg {
+  flex-shrink: 0;
+  color: var(--brand-dark);
+}
+
+.emergencyScreen h3,
+.emergencyScreen h4 {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.emergencyScreen h3 {
+  font-size: 18px;
+}
+
+.emergencyScreen h4 {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.emergencyScreen p {
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.emergencyEyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.emergencyCritical .emergencySectionHeading > svg,
+.emergencyCritical .emergencyEyebrow,
+.emergencyCritical h3 {
+  color: var(--emergency-danger);
+}
+
+.emergencyCritical .stepsList li::marker {
+  color: var(--emergency-danger);
+}
+
+.emergencyCallActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.emergencyCallActions a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 12px;
+  border: 1px solid var(--emergency-danger);
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.emergencyCallActions svg {
+  flex-shrink: 0;
+}
+
+.emergencyCallActions small {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.emergencyCallPrimary {
+  background: var(--emergency-danger);
+  color: #fff;
+}
+
+.emergencyCallSecondary {
+  background: var(--surface);
+  color: var(--emergency-danger);
+}
+
+.emergencyCallActions a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.emergencyScreen .emergencyCallHint {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+.emergencySevereLow {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--emergency-danger);
+}
+
+.emergencySevereLow h4 {
+  margin: 0;
+}
+
+.emergencySupportNote {
+  margin: 20px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--brand);
+}
+
+.emergencyQuickLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.emergencyQuickLinks button {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--brand-dark);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--brand-dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.emergencyQuickLinks button:hover {
+  background: var(--brand-tint);
+}
+
+.emergencyGuidanceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.emergencyGuidanceGrid > .card {
+  margin-bottom: 0;
+}
+
+.emergencyLowGuidance .emergencySectionHeading > svg {
+  color: var(--status-low, #175d9c);
+}
+
+.emergencyHighGuidance .emergencySectionHeading > svg {
+  color: var(--status-high, #854400);
+}
+
+.emergencyScreen .emergencyThreshold {
+  display: inline-block;
+  margin: 14px 0 0;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: var(--surface-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emergencyScreen .emergencyInlineNote {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.emergencyEscalation {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.emergencyKetoneLevels {
+  margin: 20px 0;
+}
+
+.emergencyKetoneLevels > div {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.emergencyKetoneLevels dt {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.emergencyKetoneLevels dd {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.emergencyKetoneUrgent {
+  background: var(--status-high-bg, #fff4df);
+  color: var(--status-high, #854400);
+}
+
+.emergencyKetoneCritical {
+  background: var(--emergency-danger-bg);
+  color: var(--emergency-danger);
+}
+
+.emergencyContactName {
+  margin-bottom: 4px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.emergencyContactCard .callButton {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+}
+
+.emergencySources {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.emergencySources summary {
+  padding: 14px 0;
+  min-height: 44px;
+  color: var(--brand-dark);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emergencySources ul {
+  margin: 0;
+  padding: 0 0 16px 20px;
+}
+
+.emergencySources li {
+  margin-bottom: 8px;
+}
+
+.emergencySources a {
+  display: inline-block;
+  min-height: 44px;
+  padding: 8px 0;
+  color: var(--brand-dark);
+  font-size: 13px;
+  line-height: 1.5;
+  text-underline-offset: 3px;
+}
+
+.emergencySources a svg {
+  vertical-align: middle;
+}
+
+.emergencyScreen .emergencyDisclaimer {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.emergencyScreen a:focus-visible,
+.emergencyScreen button:focus-visible,
+.emergencyScreen summary:focus-visible,
+.emergencyScreen [tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--focus, #175d9c);
+  outline-offset: 3px;
+}
+
+#emergency-low,
+#emergency-high,
+#emergency-ketones {
+  scroll-margin-top: 16px;
+}
+
+@media (max-width: 700px) {
+  .emergencyGuidanceGrid,
+  .emergencyCallActions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .emergencyCritical {
+    padding: 16px;
+  }
+
+  .emergencyKetoneLevels > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+}
