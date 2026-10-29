@@ -125,3 +125,42 @@ test("personal chart colour ranges do not change first-aid reference thresholds"
     render(),
   );
 });
+
+test("recovery illustration is local, accessible and accompanied by safety and licence text", () => {
+  const html = render();
+  const start = html.indexOf('<figure class="emergencyRecoveryFigure">');
+  const end = html.indexOf("</figure>", start);
+  assert.ok(start > html.indexOf("Do not delay the emergency call"));
+  const figure = html.slice(start, end);
+  assert.match(figure, /Only for someone unconscious but breathing normally/);
+  assert.match(figure, /CPR instructions instead/);
+  assert.match(figure, /src="\/client\/assets\/recovery-position.svg"/);
+  assert.match(figure, /width="650" height="250"/);
+  assert.match(figure, /alt="A person lying on their side/);
+  assert.match(figure, /Recovery position by Rama/);
+  assert.match(figure, /Background removed by Mrmw; used here unchanged/);
+  assert.match(figure, /https:\/\/commons.wikimedia.org\/wiki\/File:Recovery_position.svg/);
+  assert.match(figure, /https:\/\/creativecommons.org\/licenses\/by-sa\/3.0\/fr\//);
+});
+
+test("recovery guidance explains airway protection, positioning and continuing observation", () => {
+  const html = render();
+  const figure = html.slice(
+    html.indexOf('<figure class="emergencyRecoveryFigure">'),
+    html.indexOf("</figure>"),
+  );
+  assert.match(figure, /Why use it\?/);
+  assert.match(figure, /tongue to block the airway/);
+  assert.match(figure, /helps keep the airway open/);
+  assert.match(figure, /drain out of the mouth/);
+  assert.match(figure, /does not treat low blood glucose/);
+  assert.match(figure, /Arm and hand:/);
+  assert.match(figure, /Leg and side:/);
+  assert.match(figure, /hip and knee are bent at right angles/);
+  assert.match(figure, /Head and airway:/);
+  assert.match(figure, /tilt the head back and lift the chin/);
+  assert.match(figure, /Stay and check:/);
+  assert.match(figure, /breathing stops or becomes abnormal/);
+  assert.match(figure, /Possible neck or back injury\?/);
+  assert.match(html, /https:\/\/www.redcross.org.uk\/first-aid\/learn-first-aid\/unresponsive-and-breathing/);
+});

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { BackButton } from "../components/BackButton";
 import { Card } from "../components/Card";
+import recoveryPositionImage from "../assets/recovery-position.svg";
 
 const SOURCES = [
   {
@@ -38,6 +39,10 @@ const SOURCES = [
   {
     title: "St John Ambulance: Recovery position",
     url: "https://www.sja.org.uk/first-aid-advice/recovery-position/",
+  },
+  {
+    title: "British Red Cross: Unresponsive and breathing",
+    url: "https://www.redcross.org.uk/first-aid/learn-first-aid/unresponsive-and-breathing",
   },
   {
     title: "Western Cape Government: South African emergency numbers",
@@ -135,6 +140,91 @@ export function EmergencyPage({ profile, onBack }) {
               and stay with them. Do not delay the emergency call.
             </li>
           </ol>
+          <figure className="emergencyRecoveryFigure">
+            <h4>Recovery position</h4>
+            <p>
+              <strong>Only for someone unconscious but breathing normally.</strong>
+              {" "}If not breathing normally, follow the emergency call handler's
+              CPR instructions instead.
+            </p>
+            <div className="emergencyRecoveryPurpose">
+              <h4>Why use it?</h4>
+              <p>
+                When someone is unconscious, relaxed muscles can allow their
+                tongue to block the airway. Lying on their side with the head
+                gently tilted back helps keep the airway open and allows vomit
+                or fluid to drain out of the mouth instead of obstructing
+                breathing.
+              </p>
+              <p>
+                This protects breathing while help is coming. It does not treat
+                low blood glucose or replace emergency medical care.
+              </p>
+            </div>
+            <img
+              src={recoveryPositionImage}
+              width={650}
+              height={250}
+              alt="A person lying on their side, with the upper knee bent and a hand supporting the cheek."
+            />
+            <h4>Positioning: what matters</h4>
+            <p className="emergencyRecoveryIntro">
+              Use these steps alongside the illustration, not the picture
+              alone. Follow the emergency call handler's instructions.
+            </p>
+            <ol className="stepsList emergencyRecoverySteps">
+              <li>
+                <strong>Arm and hand:</strong> with the person on their back,
+                place the nearer arm out at a right angle, elbow bent and palm
+                up. Bring the other hand across their chest and hold the back
+                of it against the cheek nearest you.
+              </li>
+              <li>
+                <strong>Leg and side:</strong> bend the far knee so the foot is
+                flat on the floor. Keep the hand against the cheek and gently
+                roll them towards you onto their side. Adjust the upper leg so
+                the hip and knee are bent at right angles to support the
+                position.
+              </li>
+              <li>
+                <strong>Head and airway:</strong> gently tilt the head back and
+                lift the chin. Adjust the hand under the cheek to support the
+                head and keep the airway open, allowing fluid to drain from
+                the mouth.
+              </li>
+              <li>
+                <strong>Stay and check:</strong> keep watching their breathing
+                and response until help arrives. If breathing stops or becomes
+                abnormal, follow the emergency call handler's CPR instructions.
+              </li>
+            </ol>
+            <p className="emergencyRecoveryCaution">
+              <strong>Possible neck or back injury?</strong> Tell the emergency
+              call handler. Keeping the airway open takes priority; follow their
+              instructions and keep the head, neck and back aligned if turning
+              is needed.
+            </p>
+            <figcaption>
+              Illustration:{" "}
+              <a
+                href="https://commons.wikimedia.org/wiki/File:Recovery_position.svg"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Recovery position by Rama
+              </a>
+              {" "}via Wikimedia Commons. Background removed by Mrmw; used here
+              unchanged under{" "}
+              <a
+                href="https://creativecommons.org/licenses/by-sa/3.0/fr/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                CC BY-SA 3.0 France
+              </a>
+              .
+            </figcaption>
+          </figure>
         </div>
       </section>
 

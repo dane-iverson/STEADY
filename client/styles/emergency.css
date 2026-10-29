@@ -129,6 +129,66 @@
   margin: 0;
 }
 
+.emergencyRecoveryFigure {
+  margin: 20px 0 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.emergencyRecoveryFigure img {
+  display: block;
+  width: 100%;
+  max-width: 650px;
+  height: auto;
+  margin: 16px auto;
+  background: #fff;
+}
+
+.emergencyRecoveryFigure figcaption {
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.emergencyRecoveryPurpose {
+  margin-top: 16px;
+  padding: 14px;
+  border-left: 3px solid var(--brand);
+  border-radius: 4px;
+  background: var(--surface-muted);
+}
+
+.emergencyRecoveryPurpose p:last-child {
+  margin-bottom: 0;
+}
+
+.emergencyScreen .emergencyRecoveryIntro,
+.emergencyScreen .emergencyRecoveryCaution {
+  font-size: 13px;
+}
+
+.emergencyRecoverySteps li {
+  margin-bottom: 12px;
+}
+
+.emergencyRecoveryCaution {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.emergencyRecoveryFigure a {
+  display: inline-block;
+  min-height: 44px;
+  padding: 12px 0;
+  color: var(--brand-dark);
+  text-underline-offset: 3px;
+}
+
 .emergencySupportNote {
   margin: 20px 0;
   padding-left: 12px;
