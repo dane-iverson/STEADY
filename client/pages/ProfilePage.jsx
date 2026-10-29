@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AGE_GROUPS } from "../data/appData";
 import { Card } from "../components/Card";
+import { BackButton } from "../components/BackButton";
 import { DateOfBirthPicker } from "../components/DateOfBirthPicker";
 import { glucoseRangeShare } from "../utils/glucoseSharing";
 import { selectTrendShare } from "../utils/trendSharing";
@@ -418,10 +419,7 @@ export function ProfilePage({
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <span style={{ display: "inline-flex", alignItems: "center" }}>←</span>{" "}
-        Home
-      </button>
+      <BackButton onClick={onBack} />
       <h2 className="screenTitle">Your details</h2>
       <div className="chipRow">
         <button

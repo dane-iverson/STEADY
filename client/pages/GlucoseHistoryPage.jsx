@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ChevronLeft, Download, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
+import { BackButton } from "../components/BackButton";
 import { Card } from "../components/Card";
 import {
   exportReadingsToPdf,
@@ -101,9 +102,7 @@ export function GlucoseHistoryPage({
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Back
-      </button>
+      <BackButton onClick={onBack} destination="log glucose" />
 
       <h2 className="screenTitle">Saved readings</h2>
       <p className="screenSub">All previous glucose entries.</p>

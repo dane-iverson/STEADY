@@ -169,6 +169,7 @@ export function CaregiverInboxPage({
   onRequestConnection,
   onRespondToConnection,
   onRevokeConnection,
+  onProfile,
   onLogout,
 }) {
   const [refreshing, setRefreshing] = useState(false);
@@ -325,15 +326,20 @@ export function CaregiverInboxPage({
           <h2 className="screenTitle">Shared with me</h2>
           <p className="screenSub">{displayName}</p>
         </div>
-        <button
-          className="caregiverLogout"
-          type="button"
-          onClick={onLogout}
-          aria-label="Log out"
-          title="Log out"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="caregiverHeaderActions">
+          <button className="btnGhost" type="button" onClick={onProfile}>
+            <User size={16} aria-hidden="true" /> My profile
+          </button>
+          <button
+            className="caregiverLogout"
+            type="button"
+            onClick={onLogout}
+            aria-label="Log out"
+            title="Log out"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </div>
 
       <GettingStarted

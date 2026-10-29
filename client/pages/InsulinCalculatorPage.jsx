@@ -3,13 +3,13 @@ import {
   AlertTriangle,
   Calculator,
   ChevronDown,
-  ChevronLeft,
   Lock,
   Save,
   ShieldCheck,
   Utensils,
 } from "lucide-react";
 import { Card } from "../components/Card";
+import { BackButton } from "../components/BackButton";
 import {
   DEFAULT_INSULIN_SETTINGS,
   calculateInsulinDose,
@@ -78,9 +78,7 @@ export function InsulinCalculatorPage({
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Home
-      </button>
+      <BackButton onClick={onBack} />
       <div className="calculatorHeader">
         <div>
           <h2 className="screenTitle">Insulin calculator</h2>

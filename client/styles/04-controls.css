@@ -285,18 +285,46 @@
 }
 
 .linkBack {
-  background: none;
-  border: none;
-  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--brand-dark);
+  border-radius: 8px;
+  display: inline-flex;
   align-items: center;
-  gap: 2px;
-  color: var(--ink-soft);
-  font-size: 13px;
-  font-weight: 500;
-  padding: 0;
-  margin-bottom: 10px;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  align-self: flex-start;
+  max-width: 100%;
+  color: var(--brand-dark);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 10px 12px;
+  margin-bottom: 16px;
   cursor: pointer;
   font-family: inherit;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.linkBack:hover:not(:disabled) {
+  background: var(--brand-tint);
+}
+
+.linkBack:focus-visible {
+  outline: 3px solid var(--focus, #175d9c);
+  outline-offset: 3px;
+}
+
+.linkBack:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.linkBack svg {
+  flex-shrink: 0;
 }
 
 /* ==========================================================================

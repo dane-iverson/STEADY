@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AGE_GROUPS, COPY, EDUCATION } from "../data/appData";
 import { Card } from "../components/Card";
+import { BackButton } from "../components/BackButton";
 
 const ICONS = {
   Droplet,
@@ -95,9 +96,7 @@ export function EducationPage({ ageGroup, onBack }) {
 
     return (
       <div className="screen">
-        <button className="linkBack" onClick={() => setOpen(null)}>
-          <ChevronLeft size={16} /> Education Centre
-        </button>
+        <BackButton onClick={() => setOpen(null)} destination="Education Centre" />
         <div className="brandMark small">
           <Icon size={20} />
         </div>
@@ -118,9 +117,7 @@ export function EducationPage({ ageGroup, onBack }) {
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Home
-      </button>
+      <BackButton onClick={onBack} />
       <h2 className="screenTitle">Diabetes Education Centre</h2>
       <p className="screenSub">{c.eduIntro}</p>
       <div className="listCol">

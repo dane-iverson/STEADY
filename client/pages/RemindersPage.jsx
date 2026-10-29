@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Check,
   CheckCircle2,
-  ChevronLeft,
   ClipboardCheck,
   Edit3,
   FileText,
@@ -10,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Card } from "../components/Card";
+import { BackButton } from "../components/BackButton";
 import {
   formatReminderWhen,
   getNextOccurrence,
@@ -281,9 +281,7 @@ export function RemindersPage({ reminders, setReminders, onBack }) {
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Home
-      </button>
+      <BackButton onClick={onBack} />
 
       <div className="reminderPageHeader">
         <div>

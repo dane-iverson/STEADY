@@ -7,6 +7,87 @@ import { memoryUsers, memoryConnections, createUserDocument } from "../db.js";
 import { jwtSecret, setDatabaseAvailable } from "../config.js";
 import { selectTrendShare } from "../../client/utils/trendSharing.js";
 
+test("caregivers can save their own name and surname without changing patient data", async () => {
+  setDatabaseAvailable(false);
+  const caregiver = createUserDocument({
+    _id: "profile-caregiver",
+    name: "Original",
+    email: "profile-caregiver@example.test",
+    accountType: "caregiver",
+    ageGroup: "caregiver",
+    sharedItems: [{ id: "existing-update", type: "glucose" }],
+    profile: { surname: "Original surname", contactName: "Keep contact" },
+  });
+  const patient = createUserDocument({
+    _id: "profile-patient",
+    name: "Patient",
+    email: "profile-patient@example.test",
+  });
+  const originalPatient = structuredClone(patient);
+  const originalProfile = structuredClone(caregiver.profile);
+  const originalItems = structuredClone(caregiver.sharedItems);
+  memoryUsers.push(caregiver, patient);
+  const app = express();
+  app.use(express.json());
+  app.use("/user", userRoutes);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise((resolve) => server.once("listening", resolve));
+  const url = `http://127.0.0.1:${server.address().port}/user/me`;
+  const authorization = `Bearer ${jwt.sign({ userId: caregiver._id }, jwtSecret())}`;
+  const save = (revision, profile) =>
+    fetch(url, {
+      method: "PUT",
+      headers: { authorization, "content-type": "application/json" },
+      body: JSON.stringify({ revision, profile }),
+    });
+  try {
+    const updatedProfile = {
+      ...originalProfile,
+      name: "Updated",
+      surname: "New surname",
+    };
+    const response = await save(0, updatedProfile);
+    assert.equal(response.status, 200);
+    const { user: saved } = await response.json();
+    assert.equal(saved.name, "Updated");
+    assert.deepEqual(saved.profile, updatedProfile);
+    assert.equal(saved.accountType, "caregiver");
+    assert.equal(saved.ageGroup, "caregiver");
+    assert.equal(saved.revision, 1);
+    assert.deepEqual(saved.sharedItems, originalItems);
+    assert.deepEqual(patient, originalPatient);
+
+    const reload = await fetch(url, { headers: { authorization } });
+    assert.equal(reload.status, 200);
+    const { user: reloaded } = await reload.json();
+    assert.deepEqual(reloaded.profile, updatedProfile);
+
+    assert.equal(
+      (await save(0, { ...updatedProfile, name: "Stale" })).status,
+      409,
+    );
+    assert.equal(
+      (await save(1, { ...updatedProfile, surname: "x".repeat(501) })).status,
+      400,
+    );
+    assert.deepEqual(caregiver.profile, updatedProfile);
+    assert.equal(caregiver.revision, 1);
+
+    assert.equal(
+      (await save(1, { ...updatedProfile, surname: "" })).status,
+      200,
+    );
+    assert.equal(caregiver.profile.surname, "");
+    assert.equal(caregiver.name, "Updated");
+    assert.deepEqual(patient, originalPatient);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    memoryUsers.splice(memoryUsers.indexOf(caregiver), 1);
+    memoryUsers.splice(memoryUsers.indexOf(patient), 1);
+  }
+});
+
 test("trend shares reject invalid custom periods before delivery and preserve valid selection", async () => {
   setDatabaseAvailable(false);
   const patient = createUserDocument({

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Check, ChevronLeft, Clock3, History, Plus } from "lucide-react";
+import { Check, Clock3, History, Plus } from "lucide-react";
+import { BackButton } from "../components/BackButton";
 import { AGE_GROUPS, COPY } from "../data/appData.js";
 import { normalizeDecimalInput, statusOf } from "../utils/diabetes.js";
 
@@ -70,9 +71,7 @@ export function GlucoseRecordingPage({
   return (
     <div className="screen">
       <div className="recordHeader">
-        <button className="linkBack" onClick={onBack}>
-          <ChevronLeft size={16} /> Home
-        </button>
+        <BackButton onClick={onBack} />
         <button
           className="recordHistoryLink"
           type="button"

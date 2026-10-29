@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { BarChart3, ChevronLeft, Download, Info } from "lucide-react";
+import { BarChart3, Download, Info } from "lucide-react";
+import { BackButton } from "../components/BackButton";
 import {
   CartesianGrid,
   Line,
@@ -317,9 +318,7 @@ export function TrendsPage({
 
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Home
-      </button>
+      <BackButton onClick={onBack} />
       <div className="trendsHeader">
         <div>
           <h2 className="screenTitle">Your trends</h2>

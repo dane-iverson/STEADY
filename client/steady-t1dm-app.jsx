@@ -15,6 +15,7 @@ import { EmergencyPage } from "./pages/EmergencyPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { InsulinCalculatorPage } from "./pages/InsulinCalculatorPage";
 import { CaregiverInboxPage } from "./pages/CaregiverInboxPage";
+import { CaregiverProfilePage } from "./pages/CaregiverProfilePage";
 import { GuidedTour } from "./components/GuidedTour";
 import {
   ageGroupFromDateOfBirth,
@@ -120,7 +121,10 @@ const VALID_SCREENS = new Set([
   "profile",
   "insulinCalculator",
   "caregiverInbox",
+  "caregiverProfile",
 ]);
+
+const CAREGIVER_SCREENS = new Set(["caregiverInbox", "caregiverProfile"]);
 
 function screenFromLocation() {
   const requestedScreen = window.location.hash.slice(2);
@@ -202,7 +206,7 @@ export default function App() {
     }
     const handlePopState = () => {
       const requestedScreen = screenFromLocation();
-      if (accountType === "caregiver" && requestedScreen !== "caregiverInbox") {
+      if (accountType === "caregiver" && !CAREGIVER_SCREENS.has(requestedScreen)) {
         setScreenState("caregiverInbox");
         window.history.replaceState(
           { screen: "caregiverInbox" },
@@ -282,8 +286,10 @@ export default function App() {
         const requestedScreen = screenFromLocation();
         const restoredScreen =
           payload.user?.accountType === "caregiver"
-            ? "caregiverInbox"
-            : ["welcome", "auth", "caregiverInbox"].includes(requestedScreen)
+            ? CAREGIVER_SCREENS.has(requestedScreen)
+              ? requestedScreen
+              : "caregiverInbox"
+            : ["welcome", "auth", ...CAREGIVER_SCREENS].includes(requestedScreen)
               ? "dashboard"
               : requestedScreen;
         setScreen(restoredScreen, { replace: true });
@@ -342,7 +348,7 @@ export default function App() {
   }, [token, isPrototype]);
 
   useEffect(() => {
-    if (accountType === "caregiver" && screen !== "caregiverInbox") {
+    if (accountType === "caregiver" && !CAREGIVER_SCREENS.has(screen)) {
       setScreen("caregiverInbox", { replace: true });
     }
   }, [accountType, screen]);
@@ -366,8 +372,16 @@ export default function App() {
   }
 
   // Serialize field-scoped writes so rapid local edits advance revisions in order.
-  async function persistUserState(nextOverrides = {}) {
-    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) return;
+  async function persistUserState(
+    nextOverrides = {},
+    { throwOnError = false } = {},
+  ) {
+    if (!hasActiveAuthSession(token, isPrototype, sessionStorage)) {
+      if (throwOnError) {
+        throw new Error("Please sign in again to save your profile.");
+      }
+      return;
+    }
     const requestToken = token;
     const capturedGeneration = sessionGeneration.capture();
     const isCurrentSession = () =>
@@ -376,7 +390,12 @@ export default function App() {
     const saveTask = saveQueueRef.current
       .catch(() => {})
       .then(async () => {
-        if (!isCurrentSession()) return;
+        if (!isCurrentSession()) {
+          if (throwOnError) {
+            throw new Error("Your session changed. Please sign in again.");
+          }
+          return;
+        }
         const response = await fetch(`${API_BASE}/user/me`, {
           method: "PUT",
           headers: {
@@ -388,21 +407,48 @@ export default function App() {
             revision: revisionRef.current,
           }),
         });
-        if (!isCurrentSession()) return;
+        if (!isCurrentSession()) {
+          if (throwOnError) {
+            throw new Error("Your session changed. Please sign in again.");
+          }
+          return;
+        }
         if (response.status === 409) {
           setSaveConflict(true);
+          if (throwOnError) {
+            throw new Error(
+              "Your account changed elsewhere. Reload the latest data before saving again.",
+            );
+          }
           return;
         }
         if (!response.ok) throw new Error("Profile save failed.");
         const payload = await response.json();
-        if (isCurrentSession()) revisionRef.current = payload.user.revision;
+        if (!isCurrentSession()) {
+          if (throwOnError) {
+            throw new Error("Your session changed. Please sign in again.");
+          }
+          return;
+        }
+        revisionRef.current = payload.user.revision;
+        return payload.user;
       });
     saveQueueRef.current = saveTask;
     try {
-      await saveTask;
+      return await saveTask;
     } catch (error) {
       console.error("Profile sync failed.", error);
+      if (throwOnError) throw error;
     }
+  }
+
+  async function saveCaregiverProfile(details) {
+    const user = await persistUserState(
+      { profile: { ...profile, ...details } },
+      { throwOnError: true },
+    );
+    setProfile(user.profile);
+    setName(user.name);
   }
 
   async function refreshUserState() {
@@ -662,9 +708,15 @@ export default function App() {
     setEditingReading(null);
   }
 
-  // Caregiver accounts always land on the inbox, regardless of the prior screen.
+  // Keep caregiver navigation separate from patient medical screens.
   const isCaregiver = accountType === "caregiver";
-  const routedScreen = isCaregiver ? "caregiverInbox" : screen;
+  const routedScreen = isCaregiver
+    ? CAREGIVER_SCREENS.has(screen)
+      ? screen
+      : "caregiverInbox"
+    : screen === "caregiverProfile"
+      ? "dashboard"
+      : screen;
 
   // Analytics is initialized and screen-tracked only after consent is granted.
   useEffect(() => {
@@ -771,7 +823,17 @@ export default function App() {
               onRequestConnection={requestConnection}
               onRespondToConnection={respondToConnection}
               onRevokeConnection={revokeConnection}
+              onProfile={() => setScreen("caregiverProfile")}
               onLogout={handleLogout}
+            />
+          )}
+
+          {routedScreen === "caregiverProfile" && (
+            <CaregiverProfilePage
+              name={name}
+              profile={profile}
+              onSave={saveCaregiverProfile}
+              onBack={() => setScreen("caregiverInbox")}
             />
           )}
 

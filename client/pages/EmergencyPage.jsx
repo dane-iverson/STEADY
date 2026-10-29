@@ -1,5 +1,6 @@
 import React from "react";
-import { ChevronLeft, Phone, WifiOff } from "lucide-react";
+import { Phone, WifiOff } from "lucide-react";
+import { BackButton } from "../components/BackButton";
 import { Card } from "../components/Card";
 
 export function EmergencyPage({ profile, onBack }) {
@@ -10,9 +11,7 @@ export function EmergencyPage({ profile, onBack }) {
   const canDial = dialNumber.replace(/\D/g, "").length >= 3;
   return (
     <div className="screen">
-      <button className="linkBack" onClick={onBack}>
-        <ChevronLeft size={16} /> Home
-      </button>
+      <BackButton onClick={onBack} />
       <div className="rowBetween">
         <h2 className="screenTitle" style={{ marginBottom: 2 }}>
           Emergency &amp; safety
